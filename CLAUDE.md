@@ -1,4 +1,5 @@
-# CLAUDE.md
+# Panduan untuk AI Agents — Pantau Pangan
+
 > Panduan untuk AI agents yang bekerja di repository ini.
 > Baca file ini sebelum melakukan perubahan apapun.
 
@@ -9,11 +10,103 @@
 **Pantau Pangan** adalah visualisasi harga pangan strategis nasional berbasis bubble chart interaktif. Data bersumber dari API publik Bank Indonesia PIHPS (`bi.go.id/hargapangan`). Tidak ada auth yang dibutuhkan untuk mengakses API BI.
 
 Dokumen lengkap ada di:
+
 - `PRD.md` — fitur, scope, dan keputusan produk
 - `docs/api-reference.md` — semua endpoint BI, struktur response, cara fetch
 - `docs/architecture.md` — keputusan teknis, DB schema, data flow, kalkulasi bubble
 
 **Baca ketiga dokumen tersebut sebelum mulai coding.**
+
+---
+
+## State M1 Foundation (sudah selesai)
+
+M1 sudah menyelesaikan fondasi monorepo. Saat memulai task baru, asumsikan state berikut sudah ada — JANGAN setup ulang atau ubah:
+
+### Tooling versi yang ter-resolve
+
+- Bun 1.1.21 (pinned di `package.json` field `packageManager`)
+- TypeScript 6.0 strict (`tsconfig.json` di root, semua package extends ini)
+- Turborepo 2.x (`turbo.json` dengan key `tasks`, bukan `pipeline` v1)
+- ESLint 10.x flat config (`eslint.config.js` ESM, single source — TIDAK ada eslint config per-package)
+- typescript-eslint 8.x (idiomatic `tseslint.config()` helper, typed-linting di-scope ke `**/*.{ts,tsx,mts,cts}`)
+- Prettier 3.x
+- Husky 9.x (`core.hooksPath=.husky/_`, hook file tanpa shebang)
+- lint-staged, @commitlint/cli + config-conventional
+- Next.js 16.x + React 19.x + Tailwind 4.x (zero-config, no `tailwind.config.ts`, setup via `postcss.config.mjs`)
+- Hono 4.x
+
+### Struktur monorepo
+
+```
+pantau-pangan/
+├── package.json                       # workspace root + 11 scripts + lint-staged
+├── tsconfig.json                      # Base_Tsconfig strict
+├── turbo.json                         # 5 tasks: build, typecheck, lint, dev, scrape
+├── eslint.config.js                   # flat config single source
+├── .prettierrc.json + .prettierignore
+├── commitlint.config.js
+├── .husky/{pre-commit, commit-msg, pre-push}
+├── .gitignore + .env.example
+├── apps/
+│   ├── api/      # Hono + Bun, port 3001
+│   │   ├── package.json
+│   │   ├── tsconfig.json (extends ../../tsconfig.json + types: ["bun"])
+│   │   └── src/index.ts
+│   └── web/      # Next 16 + Tailwind 4, port 3000
+│       ├── package.json
+│       ├── tsconfig.json (extends root + Next-specific)
+│       ├── next.config.ts (TS config, Next 15+ feature)
+│       ├── postcss.config.mjs (@tailwindcss/postcss)
+│       ├── next-env.d.ts
+│       ├── public/
+│       └── app/{layout.tsx, page.tsx, globals.css, favicon.ico}
+└── packages/
+    ├── shared/   # leaf, dual export ESM
+    │   ├── package.json (main, types, exports.")
+    │   ├── tsconfig.json + tsconfig.build.json
+    │   └── src/{index.ts, types.ts, constants.ts, utils.ts}
+    └── scraper/  # Bun fetch zero-dep, M2 implementation pending
+        ├── package.json
+        ├── tsconfig.json
+        └── src/index.ts
+```
+
+### Convention yang sudah berlaku
+
+- `next.config.ts` (BUKAN `.mjs`) — Next.js 15+ support TS config natively. Jangan rename ke `.mjs`.
+- Tailwind v4 zero-config — TIDAK ada `tailwind.config.ts`. Customization via `globals.css` `@theme` block + `postcss.config.mjs`.
+- ESLint `parserOptions.projectService.allowDefaultProject: ['*.config.ts']` — hanya untuk root-level config files. **Jangan tambah** pattern `apps/*/*.config.ts` atau `packages/*/*.config.ts` — itu konflik dengan tsconfig per-package yang `include: ["**/*.ts"]`.
+- ESLint config per-package DIHAPUS oleh design — kalau scaffold tool generate (mis. `create-next-app`), hapus dan andalkan root flat config.
+- `bun.lockb` (binary) ter-track. Kalau upgrade ke Bun 1.2+, lockfile bisa migrate ke `bun.lock` text format — di-handle waktu upgrade Bun saja.
+- `*.tsbuildinfo` di `.gitignore` (artefak `incremental: true` di tsconfig apps/web).
+- Tidak ada folder `dist/` atau `.next/` di-track Git — semua di-gitignore. Generate ulang via `bun run build`.
+
+### Cara install dependency baru
+
+WAJIB pakai `bun add` / `bun add -d`, JANGAN edit `package.json` deps manual:
+
+```bash
+# Tambah ke workspace tertentu
+bun add <pkg> --filter=@pantau-pangan/api
+bun add -d <pkg> --filter=@pantau-pangan/web
+
+# Tambah ke root (devTools)
+bun add -d <pkg>
+
+# Workspace dependency (mis. shared dipakai package lain)
+bun add @pantau-pangan/shared@workspace:* --filter=@pantau-pangan/scraper
+```
+
+### Verifikasi cepat semua tooling jalan
+
+```bash
+bun install                    # symlink workspaces, register husky hooks
+bun run typecheck              # 5/5 packages, run kedua FULL TURBO cache
+bun run lint                   # 4/4 packages
+bun run build                  # 4 artifacts (apps/web/.next, apps/api/dist, packages/{shared,scraper}/dist)
+bun run dev                    # api :3001 + web :3000 paralel
+```
 
 ---
 
@@ -35,16 +128,19 @@ pantau-pangan/
 
 ### Umum
 
-- **Selalu gunakan TypeScript** — tidak ada file `.js` di dalam `src/`
-- **Selalu gunakan Bun** sebagai runtime dan package manager — tidak ada `npm` atau `yarn`
-- **Conventional commits** — `feat:`, `fix:`, `chore:`, `docs:`, `refactor:`
+- **Selalu gunakan TypeScript** — tidak ada file `.js` di dalam `src/` (config files seperti `eslint.config.js`, `next.config.ts`, `postcss.config.mjs` boleh sesuai konvensi tool)
+- **Selalu gunakan Bun** sebagai runtime + package manager — `bun add`, `bun run`. Tidak ada `npm`, `yarn`, atau `pnpm`. Internal Next.js akan tetap pakai Node.js runtime — itu transparan dan OK.
+- **Conventional commits** — `feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, `test:`, `style:`, `perf:`, `ci:`, `build:`, `revert:`. commitlint enforce di pre-commit hook.
 - **Jangan commit `.env`** — gunakan `.env.example` untuk template
+- **Jangan setup ulang tooling** — M1 sudah pin tooling (eslint flat config, husky v9, dll). Kalau perlu adjust, pastikan tidak break Task M1 yang sudah hijau (bisa cek via `bun run typecheck && bun run lint && bun run build`).
+- **`bun run` diutamakan** dibanding `bunx <pkg>` langsung untuk script yang sudah ada di `package.json` — supaya konsisten dengan Turborepo cache.
 
 ### Backend (`apps/api`)
 
 - **Route handler harus tipis** — logic bisnis ada di `services/`, bukan di `routes/`
 - Ini penting untuk migrasi V1 (REST) → V2 (tRPC) yang direncanakan
 - Contoh yang benar:
+
   ```typescript
   // routes/komoditas.ts — BENAR
   app.get('/', async (c) => {
@@ -58,14 +154,18 @@ pantau-pangan/
     return c.json(rows)
   })
   ```
+
 - **Drizzle untuk semua query DB** — tidak ada raw SQL kecuali ada alasan kuat
 - **Upsert idempotent** — scraper bisa dijalankan ulang tanpa duplikasi data
 
 ### Frontend (`apps/web`)
 
-- **TanStack Query untuk semua data fetching** — tidak ada `fetch` langsung di komponen
-- **shadcn/ui untuk komponen UI** — tidak perlu buat komponen dari scratch untuk hal umum
+- **TanStack Query untuk semua data fetching** — tidak ada `fetch` langsung di komponen (dipasang di M4)
+- **shadcn/ui untuk komponen UI** — tidak perlu buat komponen dari scratch untuk hal umum (dipasang di M4 lewat `bunx shadcn@latest init`)
 - **D3.js hanya untuk bubble chart** — komponen lain pakai shadcn/ui + Tailwind
+- **Tailwind v4** sudah ter-setup di M1 — customize via `app/globals.css` `@theme` block, bukan `tailwind.config.ts` (v4 zero-config). PostCSS plugin di `postcss.config.mjs`.
+- **Next.js App Router** — semua route di `apps/web/app/`. Pakai server components by default; tambahkan `'use client'` directive hanya kalau perlu (mis. komponen interaktif D3, hook `useState`, dll).
+- **Konfigurasi Next.js di `next.config.ts`** (TypeScript, bukan `.mjs`). Sudah include `transpilePackages: ['@pantau-pangan/shared']` — JANGAN hapus.
 
 ### Scraper (`packages/scraper`)
 
@@ -88,17 +188,20 @@ pantau-pangan/
 Semua dari `docs/api-reference.md`, tapi ini yang paling kritis:
 
 ### `GetDetailGridData2`
+
 - Parameter `date` **diabaikan server** — selalu return 5 hari terakhir
 - Response punya key tanggal dinamis: `"22/05/2026": 48350.0`
 - Parse dengan filter regex: `/^\d{2}\/\d{2}\/\d{4}$/`
 - `level` field: `0` = nasional, `1` = provinsi, `2` = kota, `3` = pasar
 
 ### `GetCommoditiesTree`
+
 - 21 komoditas leaf, 10 kategori
 - `comId` di node leaf = integer yang dipakai sebagai `ComId` di endpoint lain
 - Node parent tidak punya `comId`
 
 ### Parameter fix selalu dikirim
+
 ```
 PriceTypeId=1   → Pasar Tradisional
 isPasokan=1
@@ -147,10 +250,10 @@ Detail di `docs/architecture.md` section 5. Aturannya: **threshold per timeframe
 // packages/shared/src/constants.ts
 export const VOLATILITY_THRESHOLDS = {
   '1D': { stable: 0.5, significant: 2 },
-  '1W': { stable: 2,   significant: 5 },
-  '1M': { stable: 5,   significant: 10 },
-  '3M': { stable: 10,  significant: 20 },
-  '1Y': { stable: 15,  significant: 30 },
+  '1W': { stable: 2, significant: 5 },
+  '1M': { stable: 5, significant: 10 },
+  '3M': { stable: 10, significant: 20 },
+  '1Y': { stable: 15, significant: 30 },
 } as const
 
 // Ukuran bubble (absolut, di-cap di significant)
@@ -249,3 +352,8 @@ Migrasi V2 = wrap service functions ke tRPC procedure. Estimasi ~5 menit per rou
 - ❌ Jangan buat HTTP request langsung di komponen React — pakai TanStack Query
 - ❌ **Jangan re-aggregate** harga nasional/provinsi dari level pasar — `harga_harian` sudah simpan per level dari BI
 - ❌ **Jangan pakai threshold tunggal** untuk warna/ukuran bubble — selalu pakai `VOLATILITY_THRESHOLDS[timeframe]` dari `packages/shared`
+- ❌ **Jangan tambah ESLint config per-package** — single source = `eslint.config.js` di root. Kalau scaffold tool generate, hapus.
+- ❌ **Jangan rename `next.config.ts` ke `.mjs`** — Next 15+ support TS config dan kita pakai itu.
+- ❌ **Jangan buat `tailwind.config.ts`** — Tailwind v4 zero-config. Customize via `app/globals.css` `@theme` block.
+- ❌ **Jangan edit `package.json` deps manual** — selalu `bun add` / `bun add -d` supaya lockfile konsisten.
+- ❌ **Jangan tambah `apps/*/*.config.ts` ke ESLint `allowDefaultProject`** — itu konflik dengan tsconfig per-package yang `include: ["**/*.ts"]`.

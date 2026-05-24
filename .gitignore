@@ -1,0 +1,22 @@
+# Dependencies — jangan commit folder install
+node_modules/
+
+# Environment files — jangan commit secret. Template di .env.example
+.env
+.env.local
+.env.*.local
+
+# Cache build tools
+.turbo/
+dist/
+.next/
+coverage/
+*.tsbuildinfo
+
+# Log dan file OS
+*.log
+.DS_Store
+
+# IDE / editor — keep local, jangan share kecuali jelas team-wide
+.vscode/
+.idea/

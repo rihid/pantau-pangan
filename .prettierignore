@@ -1,0 +1,10 @@
+node_modules
+dist
+.next
+.turbo
+coverage
+bun.lock
+bun.lockb
+.env
+.env.*
+!.env.example

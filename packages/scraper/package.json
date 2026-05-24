@@ -1,0 +1,15 @@
+{
+  "name": "@pantau-pangan/scraper",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun run --hot src/index.ts",
+    "build": "bun build src/index.ts --outdir=dist --target=bun",
+    "scrape": "bun run src/index.ts",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@pantau-pangan/shared": "workspace:*"
+  }
+}

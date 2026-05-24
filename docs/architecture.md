@@ -1,65 +1,94 @@
 # Architecture — Pantau Pangan
+
 > Keputusan teknis, alasan stack, dan struktur sistem
 
-**Version:** 1.0  
-**Last updated:** Mei 2026
+**Version:** 1.1  
+**Last updated:** Mei 2026 (post M1)
 
 ---
 
 ## 1. Monorepo Structure
 
+> **State M1:** Skeleton sudah dibuat dan ter-verifikasi. Folder `routes/`, `services/`, `db/`, `components/`, `lib/` di bawah ini adalah **layout yang dirancang untuk M2+** — belum ada di disk sampai milestone yang relevan mengisinya. M1 hanya bikin entry point placeholder per package.
+
 ```
 pantau-pangan/
-├── package.json              ← root workspace (Bun + Turborepo)
-├── turbo.json                ← Turborepo pipeline config
-├── tsconfig.json             ← base tsconfig, di-extend tiap package
+├── package.json              ← root workspace (Bun + Turborepo, 11 scripts)
+├── turbo.json                ← Turborepo 2.x config (key `tasks`)
+├── tsconfig.json             ← base tsconfig (strict + noUncheckedIndexedAccess)
+├── eslint.config.js          ← flat config single source (typescript-eslint v8)
+├── .prettierrc.json + .prettierignore
+├── commitlint.config.js
+├── .husky/                   ← pre-commit, commit-msg, pre-push (Husky v9+)
 ├── .env.example
-├── .gitignore
+├── .gitignore                ← include *.tsbuildinfo, .turbo/, dist/, .next/
 │
 ├── apps/
-│   ├── api/                  ← Hono.js backend
+│   ├── api/                  ← Hono 4.x + Bun (port 3001)
 │   │   ├── package.json
+│   │   ├── tsconfig.json     ← extends ../../tsconfig.json + types: ["bun"]
 │   │   └── src/
-│   │       ├── index.ts      ← entry point, Hono app + cron
-│   │       ├── routes/       ← route handlers (thin, delegasi ke services)
+│   │       ├── index.ts      ← M1: placeholder route /. M2+: app + cron
+│   │       ├── routes/       ← M3: route handlers (thin, delegasi ke services)
 │   │       │   ├── komoditas.ts
 │   │       │   ├── insight.ts
 │   │       │   └── provinsi.ts
-│   │       ├── services/     ← business logic (dipisah dari routes — penting untuk migrasi tRPC)
+│   │       ├── services/     ← M3: business logic (dipisah — penting untuk V2 tRPC)
 │   │       │   ├── komoditas.service.ts
 │   │       │   ├── insight.service.ts
 │   │       │   └── harga.service.ts
-│   │       └── db/
-│   │           ├── schema.ts ← Drizzle schema
-│   │           └── index.ts  ← Drizzle client
+│   │       └── db/           ← M2: Drizzle setup
+│   │           ├── schema.ts
+│   │           └── index.ts
 │   │
-│   └── web/                  ← Next.js frontend
+│   └── web/                  ← Next 16.x + React 19 + Tailwind 4 (port 3000)
 │       ├── package.json
-│       └── src/
-│           ├── app/          ← App Router
-│           ├── components/
-│           │   ├── bubble/   ← D3.js bubble chart components
-│           │   ├── modal/    ← detail modal components
-│           │   └── ui/       ← shadcn/ui components
-│           └── lib/
-│               ├── api.ts    ← fetch helpers ke apps/api
-│               └── utils.ts
+│       ├── tsconfig.json     ← extends root + jsx preserve, lib DOM, plugins next, paths @/*
+│       ├── next.config.ts    ← TS config (Next 15+) + transpilePackages shared
+│       ├── postcss.config.mjs ← Tailwind v4 PostCSS plugin
+│       ├── next-env.d.ts
+│       ├── public/
+│       ├── app/              ← App Router (route segments)
+│       │   ├── layout.tsx    ← M1: minimal, lang="id"
+│       │   ├── page.tsx      ← M1: placeholder
+│       │   ├── globals.css   ← Tailwind v4 @import + @theme block
+│       │   └── favicon.ico
+│       ├── components/       ← M4+: komponen UI (di luar app/, sesuai konvensi --no-src-dir)
+│       │   ├── bubble/       ← M4: D3.js bubble chart components
+│       │   ├── modal/        ← M5: detail modal components
+│       │   └── ui/           ← M4: shadcn/ui generated components
+│       └── lib/
+│           ├── api.ts        ← M3+: fetch helpers ke apps/api lewat TanStack Query
+│           └── utils.ts
 │
 └── packages/
-    ├── shared/               ← types, utils, constants (dipakai FE + BE)
-    │   ├── package.json
+    ├── shared/               ← Leaf — types, utils, constants (M2+ akan diisi)
+    │   ├── package.json      ← dual export ESM (main, types, exports)
+    │   ├── tsconfig.json
+    │   ├── tsconfig.build.json ← noEmit:false, declaration:true
     │   └── src/
-    │       ├── types.ts
-    │       ├── constants.ts
-    │       └── utils.ts
+    │       ├── index.ts      ← re-export
+    │       ├── types.ts      ← M1: export {}, M2+: Komoditas, HargaHarian, BubbleData, dll
+    │       ├── constants.ts  ← M2+: VOLATILITY_THRESHOLDS, endpoint BI, dll
+    │       └── utils.ts      ← M2+: hitungPerubahan, getBubbleColor, getBubbleRadius
     │
-    └── scraper/              ← Bun fetch ke BI PIHPS
-        ├── package.json
+    └── scraper/              ← Bun fetch zero-dep ke BI PIHPS
+        ├── package.json      ← TANPA HTTP library tambahan
+        ├── tsconfig.json
         └── src/
-            ├── index.ts      ← entry point, bisa dijalankan standalone
-            ├── fetcher.ts    ← HTTP calls ke BI API
-            └── parser.ts     ← transform raw response → internal types
+            ├── index.ts      ← M1: console.warn placeholder. M2+: orchestrator
+            ├── fetcher.ts    ← M2: HTTP calls ke BI (Bun fetch native)
+            └── parser.ts     ← M2: transform raw response → internal types
 ```
+
+**Tooling roots (semua sudah aktif M1):**
+
+- TypeScript 6.x strict mode
+- Turborepo 2.x dengan task `build`, `typecheck`, `lint`, `dev`, `scrape`
+- ESLint 10.x flat config + typescript-eslint 8.x (idiomatic `tseslint.config()` helper, typed-linting di-scope ke `**/*.{ts,tsx,mts,cts}`)
+- Prettier 3.x
+- Husky 9.x dengan `core.hooksPath=.husky/_`
+- lint-staged + @commitlint/cli + config-conventional
 
 ---
 
@@ -67,59 +96,59 @@ pantau-pangan/
 
 ### 2.1 Monorepo Tooling
 
-| Tool | Alasan |
-|---|---|
-| **Turborepo** | Build cache, parallel tasks, dependency graph antar package. Sweet spot antara simplicity dan power |
-| **Bun workspaces** | Native workspace support, satu `bun install` di root untuk semua packages |
+| Tool               | Alasan                                                                                              |
+| ------------------ | --------------------------------------------------------------------------------------------------- |
+| **Turborepo**      | Build cache, parallel tasks, dependency graph antar package. Sweet spot antara simplicity dan power |
+| **Bun workspaces** | Native workspace support, satu `bun install` di root untuk semua packages                           |
 
 ### 2.2 Backend
 
-| Tool | Alasan |
-|---|---|
-| **Bun** | Runtime yang sangat cepat, native TypeScript, built-in fetch, built-in test runner, native cron scheduler |
-| **Hono.js** | Lightweight, edge-ready, type-safe, performa tinggi. Cocok dengan Bun |
-| **Drizzle ORM** | Type-safe, syntax mirip SQL (belajar ORM sekaligus ngerti SQL), ringan, support Bun dengan baik |
-| **PostgreSQL** | Robust, battle-tested, free tier di Railway cukup untuk v1 |
+| Tool            | Alasan                                                                                                    |
+| --------------- | --------------------------------------------------------------------------------------------------------- |
+| **Bun**         | Runtime yang sangat cepat, native TypeScript, built-in fetch, built-in test runner, native cron scheduler |
+| **Hono.js**     | Lightweight, edge-ready, type-safe, performa tinggi. Cocok dengan Bun                                     |
+| **Drizzle ORM** | Type-safe, syntax mirip SQL (belajar ORM sekaligus ngerti SQL), ringan, support Bun dengan baik           |
+| **PostgreSQL**  | Robust, battle-tested, free tier di Railway cukup untuk v1                                                |
 
 ### 2.3 Frontend
 
-| Tool | Alasan |
-|---|---|
-| **Next.js (App Router)** | Standard React framework, SSR/SSG built-in, deploy mudah ke Vercel |
-| **D3.js** | Standar industri untuk custom data visualization, force simulation untuk bubble physics |
-| **shadcn/ui** | Component library yang tidak opinionated, bisa di-customize, cocok untuk bagian UI non-bubble |
-| **Tailwind CSS** | Utility-first, konsisten dengan shadcn/ui |
-| **TanStack Query** | Data fetching + caching di FE. Bonus: tRPC pakai TanStack Query di balik layar, migrasi V2 lebih mulus |
+| Tool                     | Alasan                                                                                                 |
+| ------------------------ | ------------------------------------------------------------------------------------------------------ |
+| **Next.js (App Router)** | Standard React framework, SSR/SSG built-in, deploy mudah ke Vercel                                     |
+| **D3.js**                | Standar industri untuk custom data visualization, force simulation untuk bubble physics                |
+| **shadcn/ui**            | Component library yang tidak opinionated, bisa di-customize, cocok untuk bagian UI non-bubble          |
+| **Tailwind CSS**         | Utility-first, konsisten dengan shadcn/ui                                                              |
+| **TanStack Query**       | Data fetching + caching di FE. Bonus: tRPC pakai TanStack Query di balik layar, migrasi V2 lebih mulus |
 
 ### 2.4 Scraper
 
-| Tool | Alasan |
-|---|---|
+| Tool                 | Alasan                                                                         |
+| -------------------- | ------------------------------------------------------------------------------ |
 | **Bun native fetch** | Semua endpoint BI public, zero auth — tidak butuh Playwright atau library lain |
 
 > **Catatan:** Sempat dipertimbangkan Playwright untuk session management, namun setelah investigasi ternyata semua endpoint BI bisa diakses tanpa auth sama sekali.
 
 ### 2.5 LLM
 
-| Tool | Alasan |
-|---|---|
-| **OpenRouter (V1)** | Gratis/murah untuk eksperimen, banyak model pilihan |
+| Tool                        | Alasan                                                      |
+| --------------------------- | ----------------------------------------------------------- |
+| **OpenRouter (V1)**         | Gratis/murah untuk eksperimen, banyak model pilihan         |
 | **Claude API / Haiku (V2)** | Upgrade setelah V1 stabil, lebih konsisten dan controllable |
 
 ### 2.6 Code Quality
 
-| Tool | Alasan |
-|---|---|
-| **ESLint + Prettier** | Lint + formatting, standar industri |
-| **Husky + lint-staged** | Pre-commit hook, hanya lint file yang berubah (lebih cepat) |
-| **commitlint** | Enforce conventional commits — `feat:`, `fix:`, `chore:`, `docs:` |
-| **tsc --noEmit** | Type check di pre-push hook, cegah type error masuk repo |
+| Tool                    | Alasan                                                            |
+| ----------------------- | ----------------------------------------------------------------- |
+| **ESLint + Prettier**   | Lint + formatting, standar industri                               |
+| **Husky + lint-staged** | Pre-commit hook, hanya lint file yang berubah (lebih cepat)       |
+| **commitlint**          | Enforce conventional commits — `feat:`, `fix:`, `chore:`, `docs:` |
+| **tsc --noEmit**        | Type check di pre-push hook, cegah type error masuk repo          |
 
 ### 2.7 Deploy
 
-| Service | Dipakai untuk | Alasan |
-|---|---|---|
-| **Vercel** | `apps/web` | Native Next.js support, free tier cukup, zero config |
+| Service     | Dipakai untuk           | Alasan                                                                |
+| ----------- | ----------------------- | --------------------------------------------------------------------- |
+| **Vercel**  | `apps/web`              | Native Next.js support, free tier cukup, zero config                  |
 | **Railway** | `apps/api` + PostgreSQL | Support Bun native, bisa handle API + DB dalam satu project/dashboard |
 
 ---
@@ -209,6 +238,7 @@ CREATE TABLE insight_cache (
 ```
 
 **Index:**
+
 ```sql
 -- Query bubble chart utama: SELECT ... WHERE komoditas_id IN (...) AND level = 0|1
 CREATE INDEX idx_harga_komoditas_level_tanggal
@@ -225,6 +255,7 @@ CREATE INDEX idx_insight_lookup
 ```
 
 **ERD:**
+
 ```mermaid
 erDiagram
   komoditas {
@@ -279,6 +310,7 @@ erDiagram
 ```
 
 **Alasan desain:**
+
 - Simpan apa adanya dari BI per level — angka konsisten dengan bi.go.id
 - Query bubble chart instant: `WHERE level = 0` atau `WHERE level = 1 AND provinsi_id = ?`
 - `chk_level_fk` mencegah inconsistent state (mis. level=0 dengan pasar_id terisi)
@@ -369,10 +401,10 @@ export type Timeframe = '1D' | '1W' | '1M' | '3M' | '1Y'
 
 export const VOLATILITY_THRESHOLDS: Record<Timeframe, { stable: number; significant: number }> = {
   '1D': { stable: 0.5, significant: 2 },
-  '1W': { stable: 2,   significant: 5 },
-  '1M': { stable: 5,   significant: 10 },
-  '3M': { stable: 10,  significant: 20 },
-  '1Y': { stable: 15,  significant: 30 },
+  '1W': { stable: 2, significant: 5 },
+  '1M': { stable: 5, significant: 10 },
+  '3M': { stable: 10, significant: 20 },
+  '1Y': { stable: 15, significant: 30 },
 }
 ```
 
@@ -381,11 +413,11 @@ export const VOLATILITY_THRESHOLDS: Record<Timeframe, { stable: number; signific
 ```typescript
 export function getBubbleColor(persen: number, timeframe: Timeframe): string {
   const { stable, significant } = VOLATILITY_THRESHOLDS[timeframe]
-  if (Math.abs(persen) < stable / 5) return '#6b7280'  // abu — benar-benar stabil
-  if (persen >=  significant) return '#ef4444'         // merah     — naik signifikan
-  if (persen >   0)           return '#f97316'         // oranye    — naik biasa
-  if (persen <= -significant) return '#22c55e'         // hijau tua — turun signifikan
-  return '#84cc16'                                     // hijau muda — turun biasa
+  if (Math.abs(persen) < stable / 5) return '#6b7280' // abu — benar-benar stabil
+  if (persen >= significant) return '#ef4444' // merah     — naik signifikan
+  if (persen > 0) return '#f97316' // oranye    — naik biasa
+  if (persen <= -significant) return '#22c55e' // hijau tua — turun signifikan
+  return '#84cc16' // hijau muda — turun biasa
 }
 ```
 
@@ -396,8 +428,8 @@ max-of-day. Konsekuensi: di hari quiet semua bubble tampak kecil (sinyal visual 
 di hari volatile bubble membesar.
 
 ```typescript
-const BUBBLE_MIN_RADIUS = 30   // px — minimum agar selalu kelihatan
-const BUBBLE_MAX_RADIUS = 120  // px — capped saat |perubahan| >= significant
+const BUBBLE_MIN_RADIUS = 30 // px — minimum agar selalu kelihatan
+const BUBBLE_MAX_RADIUS = 120 // px — capped saat |perubahan| >= significant
 
 export function getBubbleRadius(persen: number, timeframe: Timeframe): number {
   const { significant } = VOLATILITY_THRESHOLDS[timeframe]
@@ -468,7 +500,7 @@ export async function getAllKomoditas(provinsiId: number, timeframe: string) {
 
 // apps/api/src/routes/komoditas.ts
 app.get('/', async (c) => {
-  const data = await getAllKomoditas(0, '1D')  // delegate ke service
+  const data = await getAllKomoditas(0, '1D') // delegate ke service
   return c.json(data)
 })
 
@@ -477,8 +509,8 @@ app.get('/', async (c) => {
 export const komoditasRouter = router({
   getAll: publicProcedure
     .input(z.object({ provinsiId: z.number(), timeframe: z.string() }))
-    .query(({ input }) => getAllKomoditas(input.provinsiId, input.timeframe))
-    // ↑ fungsi yang SAMA PERSIS dari service, tidak ada logic yang ditulis ulang
+    .query(({ input }) => getAllKomoditas(input.provinsiId, input.timeframe)),
+  // ↑ fungsi yang SAMA PERSIS dari service, tidak ada logic yang ditulis ulang
 })
 ```
 
