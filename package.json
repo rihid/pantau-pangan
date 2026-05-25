@@ -18,7 +18,9 @@
     "typecheck": "turbo run typecheck",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "scrape": "turbo run scrape --filter=@pantau-pangan/scraper"
+    "scrape": "turbo run scrape --filter=@pantau-pangan/scraper",
+    "db:migrate": "bun run --filter=@pantau-pangan/api db:migrate",
+    "db:studio": "bun run --filter=@pantau-pangan/api db:studio"
   },
   "lint-staged": {
     "*.{ts,tsx}": [
@@ -45,6 +47,8 @@
     "typescript-eslint": "^8.59.4"
   },
   "dependencies": {
-    "@pantau-pangan/shared": "workspace:*"
+    "@pantau-pangan/shared": "workspace:*",
+    "drizzle-orm": "^0.45.2",
+    "postgres": "^3.4.9"
   }
 }

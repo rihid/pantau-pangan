@@ -14,5 +14,8 @@
     "build": "tsc -p tsconfig.build.json",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "fast-check": "^4.8.0"
   }
 }
