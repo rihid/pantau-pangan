@@ -1,0 +1,527 @@
+{
+  "id": "4698a84a-559f-405b-a92a-1272dc4b0d41",
+  "prevId": "00000000-0000-0000-0000-000000000000",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.harga_harian": {
+      "name": "harga_harian",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "komoditas_id": {
+          "name": "komoditas_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "level": {
+          "name": "level",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "provinsi_id": {
+          "name": "provinsi_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "kota_id": {
+          "name": "kota_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pasar_id": {
+          "name": "pasar_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "harga": {
+          "name": "harga",
+          "type": "numeric(12, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tanggal": {
+          "name": "tanggal",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "idx_harga_komoditas_level_tanggal": {
+          "name": "idx_harga_komoditas_level_tanggal",
+          "columns": [
+            {
+              "expression": "komoditas_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "level",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "tanggal",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_harga_komoditas_level_prov_tanggal": {
+          "name": "idx_harga_komoditas_level_prov_tanggal",
+          "columns": [
+            {
+              "expression": "komoditas_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "level",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "provinsi_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "tanggal",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "level >= 1",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "harga_harian_komoditas_id_komoditas_id_fk": {
+          "name": "harga_harian_komoditas_id_komoditas_id_fk",
+          "tableFrom": "harga_harian",
+          "tableTo": "komoditas",
+          "columnsFrom": ["komoditas_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "harga_harian_provinsi_id_provinsi_id_fk": {
+          "name": "harga_harian_provinsi_id_provinsi_id_fk",
+          "tableFrom": "harga_harian",
+          "tableTo": "provinsi",
+          "columnsFrom": ["provinsi_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "harga_harian_kota_id_kota_id_fk": {
+          "name": "harga_harian_kota_id_kota_id_fk",
+          "tableFrom": "harga_harian",
+          "tableTo": "kota",
+          "columnsFrom": ["kota_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "harga_harian_pasar_id_pasar_id_fk": {
+          "name": "harga_harian_pasar_id_pasar_id_fk",
+          "tableFrom": "harga_harian",
+          "tableTo": "pasar",
+          "columnsFrom": ["pasar_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "harga_harian_upsert_uniq": {
+          "name": "harga_harian_upsert_uniq",
+          "nullsNotDistinct": true,
+          "columns": ["komoditas_id", "level", "provinsi_id", "kota_id", "pasar_id", "tanggal"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "chk_level_fk": {
+          "name": "chk_level_fk",
+          "value": "\n    (level = 0 AND provinsi_id IS NULL AND kota_id IS NULL AND pasar_id IS NULL) OR\n    (level = 1 AND provinsi_id IS NOT NULL AND kota_id IS NULL AND pasar_id IS NULL) OR\n    (level = 2 AND provinsi_id IS NOT NULL AND kota_id IS NOT NULL AND pasar_id IS NULL) OR\n    (level = 3 AND provinsi_id IS NOT NULL AND kota_id IS NOT NULL AND pasar_id IS NOT NULL)\n  "
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.insight_cache": {
+      "name": "insight_cache",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "komoditas_id": {
+          "name": "komoditas_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "provinsi_id": {
+          "name": "provinsi_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cache_date": {
+          "name": "cache_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "insight": {
+          "name": "insight",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "generated_at": {
+          "name": "generated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "idx_insight_lookup": {
+          "name": "idx_insight_lookup",
+          "columns": [
+            {
+              "expression": "komoditas_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "provinsi_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "cache_date",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "insight_cache_komoditas_id_komoditas_id_fk": {
+          "name": "insight_cache_komoditas_id_komoditas_id_fk",
+          "tableFrom": "insight_cache",
+          "tableTo": "komoditas",
+          "columnsFrom": ["komoditas_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "insight_cache_provinsi_id_provinsi_id_fk": {
+          "name": "insight_cache_provinsi_id_provinsi_id_fk",
+          "tableFrom": "insight_cache",
+          "tableTo": "provinsi",
+          "columnsFrom": ["provinsi_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "insight_cache_upsert_uniq": {
+          "name": "insight_cache_upsert_uniq",
+          "nullsNotDistinct": true,
+          "columns": ["komoditas_id", "provinsi_id", "cache_date"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.komoditas": {
+      "name": "komoditas",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "tree_id": {
+          "name": "tree_id",
+          "type": "varchar(10)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "com_id": {
+          "name": "com_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nama": {
+          "name": "nama",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kategori": {
+          "name": "kategori",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "satuan": {
+          "name": "satuan",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'kg'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "komoditas_com_id_unique": {
+          "name": "komoditas_com_id_unique",
+          "nullsNotDistinct": false,
+          "columns": ["com_id"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.kota": {
+      "name": "kota",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "provinsi_id": {
+          "name": "provinsi_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nama": {
+          "name": "nama",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "kota_provinsi_id_provinsi_id_fk": {
+          "name": "kota_provinsi_id_provinsi_id_fk",
+          "tableFrom": "kota",
+          "tableTo": "provinsi",
+          "columnsFrom": ["provinsi_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "kota_provinsi_nama_uniq": {
+          "name": "kota_provinsi_nama_uniq",
+          "nullsNotDistinct": false,
+          "columns": ["provinsi_id", "nama"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.pasar": {
+      "name": "pasar",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "kota_id": {
+          "name": "kota_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nama": {
+          "name": "nama",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "pasar_kota_id_kota_id_fk": {
+          "name": "pasar_kota_id_kota_id_fk",
+          "tableFrom": "pasar",
+          "tableTo": "kota",
+          "columnsFrom": ["kota_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "pasar_kota_nama_uniq": {
+          "name": "pasar_kota_nama_uniq",
+          "nullsNotDistinct": false,
+          "columns": ["kota_id", "nama"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.provinsi": {
+      "name": "provinsi",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "bi_id": {
+          "name": "bi_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nama": {
+          "name": "nama",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "provinsi_bi_id_unique": {
+          "name": "provinsi_bi_id_unique",
+          "nullsNotDistinct": false,
+          "columns": ["bi_id"]
+        },
+        "provinsi_nama_unique": {
+          "name": "provinsi_nama_unique",
+          "nullsNotDistinct": false,
+          "columns": ["nama"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}
