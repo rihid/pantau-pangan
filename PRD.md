@@ -2,8 +2,8 @@
 
 > Visualisasi harga pangan strategis nasional berbasis bubble chart interaktif
 
-**Version:** 1.6  
-**Status:** M1 Foundation Done — Ready for M2  
+**Version:** 1.7  
+**Status:** M3 API Done — Ready for M4  
 **Stack finalized:** ✅
 
 > **Branding:** Nama project resmi adalah **Pantau Pangan**. "Gelembung" boleh dipakai sebagai tagline visual (mis. _"Pantau Pangan — gelembung harga pangan strategis"_), tapi semua nama folder, package, database, dan domain pakai `pantau-pangan` / `pantaupangan.id`.
@@ -452,8 +452,8 @@ Cron harian (07.00 WIB) — dengan retry adaptif:
 | Milestone             | Status  | Deliverable                                                                                                                                                                                                                                                                                                                              |
 | --------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **M1 — Foundation**   | ✅ Done | Monorepo Bun + Turborepo 2, TypeScript 6 strict, ESLint 10 flat config (idiomatic typescript-eslint v8 dengan `tseslint.config()` helper), Prettier 3, Husky 9 + lint-staged + commitlint, 4 package skeleton (`apps/api` Hono, `apps/web` Next 16 + Tailwind 4 + React 19, `packages/shared`, `packages/scraper`), 4 hook gate verified |
-| **M2 — Scraper**      | Pending | Bun fetch → parse `GetDetailGridData2` → simpan ke PostgreSQL via Drizzle                                                                                                                                                                                                                                                                |
-| **M3 — API**          | Pending | Hono routes: `/komoditas`, `/historis`, `/detail`, `/insight`, `/provinsi`                                                                                                                                                                                                                                                               |
+| **M2 — Scraper**      | ✅ Done | Drizzle schema (6 tabel), migration, shared types/constants/utils, fetcher (retry + backoff), parser, orchestrator (upsert idempotent), 40 property tests                                                                                                                                                                                |
+| **M3 — API**          | ✅ Done | Hono routes + services: `/komoditas` (bubble data), `/komoditas/:id/historis`, `/komoditas/:id/detail` (proxy BI), `/komoditas/:id/insight` (LLM + cache), `/provinsi`. Thin route handler → service layer architecture, error handler, validators, 78 tests (property + integration)                                                    |
 | **M4 — Bubble Chart** | Pending | D3.js force simulation, warna, ukuran, label, animasi, filter timeframe                                                                                                                                                                                                                                                                  |
 | **M5 — Modal Detail** | Pending | Chart historis, tabel geografis collapsible, LLM insight panel                                                                                                                                                                                                                                                                           |
 | **M6 — Polish**       | Pending | Search, filter provinsi, dark/light mode, loading states, error states                                                                                                                                                                                                                                                                   |
