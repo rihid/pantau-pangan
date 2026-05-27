@@ -58,18 +58,6 @@ export function BubbleChart({
 
     const svg = d3.select(svgRef.current)
 
-    // Bind data to circles using data-id attribute for selection
-    const circles = svg
-      .selectAll<SVGCircleElement, SimulationNode>('circle[data-id]')
-      .data(nodes, (d) => String(d.komoditasId))
-
-    // Transition existing circles to new radius/color
-    circles
-      .transition()
-      .duration(400)
-      .attr('r', (d) => d.radius)
-      .attr('fill', (d) => d.color)
-
     // Setup force simulation
     const simulation = d3
       .forceSimulation<SimulationNode>(nodes)
@@ -90,15 +78,26 @@ export function BubbleChart({
         d.y = clamped.y
       })
 
-      svg
-        .selectAll<SVGCircleElement, SimulationNode>('circle[data-id]')
-        .attr('cx', (d) => d.x)
-        .attr('cy', (d) => d.y)
+      // Update circle positions by matching data-id to node
+      const nodeMap = new Map(nodes.map((n) => [String(n.komoditasId), n]))
 
-      svg
-        .selectAll<SVGTextElement, SimulationNode>('text[data-text-id]')
-        .attr('x', (d) => d.x)
-        .attr('y', (d) => d.y)
+      svg.selectAll<SVGCircleElement, unknown>('circle[data-id]').each(function () {
+        const el = d3.select(this)
+        const id = el.attr('data-id')
+        const node = nodeMap.get(id)
+        if (node) {
+          el.attr('cx', node.x).attr('cy', node.y)
+        }
+      })
+
+      svg.selectAll<SVGTextElement, unknown>('text[data-text-id]').each(function () {
+        const el = d3.select(this)
+        const id = el.attr('data-text-id')
+        const node = nodeMap.get(id)
+        if (node) {
+          el.attr('x', node.x).attr('y', node.y)
+        }
+      })
     })
 
     // When simulation ends, save positions for next update
