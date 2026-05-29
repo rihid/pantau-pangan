@@ -35,6 +35,7 @@
     "@commitlint/cli": "^21.0.1",
     "@commitlint/config-conventional": "^21.0.1",
     "@eslint/js": "^10.0.1",
+    "@testing-library/jest-dom": "^6.9.1",
     "@types/bun": "^1.3.14",
     "eslint": "^10.4.0",
     "eslint-config-prettier": "^10.1.8",
@@ -48,6 +49,7 @@
   },
   "dependencies": {
     "@pantau-pangan/shared": "workspace:*",
+    "dotenv": "^17.4.2",
     "drizzle-orm": "^0.45.2",
     "postgres": "^3.4.9"
   }

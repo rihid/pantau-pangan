@@ -1,4 +1,5 @@
 import { Hono } from 'hono'
+import { cors } from 'hono/cors'
 import { errorHandler } from './middleware/error-handler'
 import komoditasRoutes from './routes/komoditas'
 import insightRoutes from './routes/insight'
@@ -11,6 +12,15 @@ if (!process.env.DATABASE_URL) {
 }
 
 const app = new Hono()
+
+// CORS — allow requests from Next.js dev server
+app.use(
+  '*',
+  cors({
+    origin: ['http://localhost:3000', 'http://127.0.0.1:3000'],
+    allowMethods: ['GET', 'POST', 'OPTIONS'],
+  }),
+)
 
 // Global error handler
 app.onError(errorHandler)

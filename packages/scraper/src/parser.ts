@@ -22,13 +22,82 @@ export interface ParsedGridResult {
 
 /**
  * Parse raw BI GetCommoditiesTree response into flat array of leaf komoditas.
- * Input: array of category nodes, each with `items` array of leaves.
+ *
+ * New API format (2025): { data: [...] } flat array with TreeID, TreeName, ParentID.
+ * - Parent nodes: ParentID === null
+ * - Leaf nodes: ParentID !== null, TreeID format = "parentId_comId" (e.g. "1_3")
+ *
+ * Legacy format: array of category nodes with nested `items`.
  */
 export function parseCommoditiesTree(raw: unknown): ParsedKomoditas[] {
+  // New API format: { data: [...] }
+  if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+    const rawObj = raw as Record<string, unknown>
+    if (Array.isArray(rawObj.data)) {
+      return parseCommoditiesTreeFlat(rawObj.data)
+    }
+    throw new Error(
+      'parseCommoditiesTree: expected { data: [...] } or array, got object without data array',
+    )
+  }
+
+  // Legacy format: array of category nodes with nested items
   if (!Array.isArray(raw)) {
     throw new Error('parseCommoditiesTree: expected an array of category nodes, got ' + typeof raw)
   }
 
+  return parseCommoditiesTreeLegacy(raw)
+}
+
+/**
+ * Parse new flat format (2025 API).
+ * comId is extracted from TreeID: "parentId_comId" → comId = parseInt(last segment).
+ */
+function parseCommoditiesTreeFlat(data: unknown[]): ParsedKomoditas[] {
+  // Build parent map: TreeID -> TreeName for category lookup
+  const parentMap = new Map<string, string>()
+  for (const node of data) {
+    const n = node as Record<string, unknown>
+    if (n.ParentID === null && typeof n.TreeID === 'string' && typeof n.TreeName === 'string') {
+      parentMap.set(n.TreeID, n.TreeName)
+    }
+  }
+
+  const results: ParsedKomoditas[] = []
+
+  for (const node of data) {
+    const n = node as Record<string, unknown>
+
+    // Skip parent nodes
+    if (n.ParentID === null) continue
+
+    const treeId = n.TreeID
+    const nama = n.TreeName
+    const parentId = n.ParentID
+
+    if (typeof treeId !== 'string' || typeof nama !== 'string' || typeof parentId !== 'string') {
+      continue
+    }
+
+    // Extract comId from TreeID: "1_3" → comId = 3
+    const parts = treeId.split('_')
+    const comIdStr = parts[parts.length - 1]
+    const comId = parseInt(comIdStr ?? '', 10)
+    if (isNaN(comId)) {
+      throw new Error(`parseCommoditiesTree: cannot extract comId from TreeID "${treeId}"`)
+    }
+
+    const kategori = parentMap.get(parentId) ?? parentId
+    results.push({ treeId, comId, nama, kategori })
+  }
+
+  return results
+}
+
+/**
+ * Legacy format: array of category nodes, each with `items` array of leaves.
+ */
+function parseCommoditiesTreeLegacy(raw: unknown[]): ParsedKomoditas[] {
   const results: ParsedKomoditas[] = []
 
   for (const node of raw) {
@@ -36,12 +105,13 @@ export function parseCommoditiesTree(raw: unknown): ParsedKomoditas[] {
       throw new Error('parseCommoditiesTree: category node must be an object')
     }
 
-    const kategori = (node as Record<string, unknown>).text
+    const nodeObj = node as Record<string, unknown>
+    const kategori = nodeObj.text
     if (typeof kategori !== 'string') {
       throw new Error('parseCommoditiesTree: category node missing "text" field')
     }
 
-    const items = (node as Record<string, unknown>).items
+    const items = nodeObj.items
     if (!items || !Array.isArray(items)) {
       // Node without items (no leaves) — skip
       continue
@@ -90,21 +160,27 @@ function parseDateString(dateStr: string): Date {
 
 /**
  * Parse raw BI GetDetailGridData2 response into structured grid rows.
- * Input: { data: [...rows] } where each row has id, name, category, level, and dynamic date keys.
+ * Input: { data: [...rows] } or raw array where each row has id, name, category, level,
+ * and dynamic date keys.
  */
 export function parseDetailGrid(raw: unknown, comId: number): ParsedGridResult {
-  if (!raw || typeof raw !== 'object') {
+  // Handle both { data: [...] } and raw array formats
+  let data: unknown[]
+
+  if (Array.isArray(raw)) {
+    data = raw
+  } else if (raw && typeof raw === 'object') {
+    const rawObj = raw as Record<string, unknown>
+    if (Array.isArray(rawObj.data)) {
+      data = rawObj.data
+    } else {
+      throw new Error(
+        `parseDetailGrid(comId=${comId}): expected array or { data: [...] }, got object without data array`,
+      )
+    }
+  } else {
     throw new Error(
       `parseDetailGrid(comId=${comId}): expected an object with "data" field, got ${typeof raw}`,
-    )
-  }
-
-  const rawObj = raw as Record<string, unknown>
-  const data = rawObj.data
-
-  if (!Array.isArray(data)) {
-    throw new Error(
-      `parseDetailGrid(comId=${comId}): "data" field must be an array, got ${typeof data}`,
     )
   }
 

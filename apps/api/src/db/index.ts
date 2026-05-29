@@ -1,6 +1,11 @@
 import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
+import { config } from 'dotenv'
+import { resolve } from 'path'
 import * as schema from './schema'
+
+// Load .env from monorepo root (four levels up from apps/api/src/db/)
+config({ path: resolve(__dirname, '../../../../.env') })
 
 const connectionString = process.env.DATABASE_URL
 if (!connectionString) {

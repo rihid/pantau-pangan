@@ -18,6 +18,10 @@
     "scrape": {
       "dependsOn": ["^build"],
       "cache": false
+    },
+    "test": {
+      "dependsOn": ["^build"],
+      "outputs": []
     }
   }
 }
