@@ -28,8 +28,10 @@ export function BubbleChartSkeleton() {
       viewBox="0 0 800 600"
       width="100%"
       height="100%"
+      preserveAspectRatio="xMidYMid meet"
       role="img"
       aria-label="Memuat data bubble chart..."
+      className="block"
     >
       {SKELETON_CIRCLES.map((circle, index) => (
         <circle

@@ -15,32 +15,42 @@ export default function HomePage() {
   const { data, isLoading, isError, isRefetching, refetch } = useKomoditas(timeframe, provinsiId)
 
   return (
-    <main className="flex flex-col h-full">
-      {/* Header */}
-      <header className="px-4 py-3 border-b border-border bg-background">
-        <h1 className="text-lg font-semibold tracking-tight">Pantau Pangan</h1>
-      </header>
+    <>
+      {/*
+        Above-the-fold section: exactly 100dvh, no scroll.
+        Header + filters are fixed at top, bubble chart fills the rest.
+      */}
+      <main className="flex flex-col h-dvh overflow-hidden bg-background">
+        {/* Header */}
+        <header className="shrink-0 flex items-center gap-3 px-4 py-2 border-b border-border">
+          <h1 className="text-base font-semibold tracking-tight">Pantau Pangan</h1>
+        </header>
 
-      {/* Filter controls — vertical on mobile, horizontal on desktop */}
-      <div className="flex flex-col md:flex-row gap-2 px-4 py-2">
-        <TimeframeFilter value={timeframe} onChange={setTimeframe} />
-        <ProvinsiFilter value={provinsiId} onChange={setProvinsiId} />
-      </div>
+        {/* Filter controls — compact, responsive */}
+        <div className="shrink-0 flex flex-wrap items-center gap-2 px-4 py-2 border-b border-border">
+          <TimeframeFilter value={timeframe} onChange={setTimeframe} />
+          <div className="ml-auto">
+            <ProvinsiFilter value={provinsiId} onChange={setProvinsiId} />
+          </div>
+        </div>
 
-      {/* Bubble chart container — fills remaining height */}
-      <BubbleChartContainer
-        data={data ?? []}
-        isLoading={isLoading}
-        isError={isError}
-        isRefetching={isRefetching}
-        onRetry={() => {
-          void refetch()
-        }}
-        provinsiId={provinsiId}
-      />
+        {/* Bubble chart — fills all remaining height */}
+        <div className="flex-1 min-h-0 overflow-hidden">
+          <BubbleChartContainer
+            data={data ?? []}
+            isLoading={isLoading}
+            isError={isError}
+            isRefetching={isRefetching}
+            onRetry={() => {
+              void refetch()
+            }}
+            provinsiId={provinsiId}
+          />
+        </div>
+      </main>
 
-      {/* Footer — always rendered, even during initial loading */}
+      {/* Footer — below the fold, visible only when scrolling down */}
       <DataFooter />
-    </main>
+    </>
   )
 }

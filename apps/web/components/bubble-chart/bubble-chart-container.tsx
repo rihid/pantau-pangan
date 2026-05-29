@@ -74,7 +74,7 @@ export function BubbleChartContainer({
 
   return (
     // flex-1 fills remaining viewport height after header + filter controls (Requirement 9.1)
-    <div ref={containerRef} className="relative flex-1 w-full">
+    <div ref={containerRef} className="relative w-full h-full">
       {isLoading ? (
         // Initial loading — show skeleton (Requirement 8.1)
         <BubbleChartSkeleton />

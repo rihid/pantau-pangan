@@ -123,8 +123,15 @@ export function BubbleChart({
   const ariaLabel = `Bubble chart harga pangan — ${data.length} komoditas`
 
   return (
-    <div className={isRefetching ? 'opacity-50' : undefined}>
-      <svg ref={svgRef} role="img" aria-label={ariaLabel} width={width} height={height}>
+    <div className={`w-full h-full${isRefetching ? ' opacity-50' : ''}`}>
+      <svg
+        ref={svgRef}
+        role="img"
+        aria-label={ariaLabel}
+        width={width}
+        height={height}
+        className="block"
+      >
         {data.map((d) => {
           const circleAriaLabel = `${d.nama}: Rp ${d.harga.toLocaleString('id-ID')}/kg, ${
             d.perubahan > 0 ? 'naik' : 'turun'
