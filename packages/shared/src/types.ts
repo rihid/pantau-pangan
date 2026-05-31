@@ -85,3 +85,16 @@ export interface InsightResponse {
   generatedAt: string
   cached: boolean
 }
+
+/**
+ * Informasi rentang data yang tersedia di DB.
+ * Dipakai FE untuk disable timeframe yang datanya tidak cukup.
+ */
+export interface DataRangeResponse {
+  /** Tanggal data tertua yang tersedia (YYYY-MM-DD), null jika belum ada data */
+  oldestDate: string | null
+  /** Tanggal data terbaru yang tersedia (YYYY-MM-DD), null jika belum ada data */
+  newestDate: string | null
+  /** Jumlah hari data yang tersedia (selisih oldest–newest) */
+  availableDays: number
+}

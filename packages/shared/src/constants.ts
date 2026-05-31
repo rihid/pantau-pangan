@@ -19,5 +19,5 @@ export const TIMEFRAME_DAYS: Record<Timeframe, number> = {
   '3M': 90,
   '1Y': 365,
 }
-export const BUBBLE_MIN_RADIUS = 30
+export const BUBBLE_MIN_RADIUS = 40
 export const BUBBLE_MAX_RADIUS = 120

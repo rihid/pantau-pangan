@@ -1,9 +1,16 @@
 import { Hono } from 'hono'
-import { getAllKomoditas, getDetail } from '../services/komoditas.service'
+import { getAllKomoditas, getDetail, getDataRange } from '../services/komoditas.service'
 import { getHistoris } from '../services/harga.service'
 import { parseIntParam, validateTimeframe, validateProvinsiId } from '../lib/validators'
 
 const app = new Hono()
+
+// GET /komoditas/data-range — harus sebelum /:id agar tidak di-capture sebagai param
+app.get('/data-range', async (c) => {
+  const provinsiId = validateProvinsiId(c.req.query('provinsiId') ?? '0')
+  const data = await getDataRange(provinsiId)
+  return c.json(data)
+})
 
 // GET /komoditas
 app.get('/', async (c) => {

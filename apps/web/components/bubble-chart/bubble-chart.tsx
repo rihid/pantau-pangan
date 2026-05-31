@@ -43,12 +43,15 @@ export function BubbleChart({
     }
 
     // Build SimulationNode[] from BubbleData[], preserving previous positions
+    const isFirstRender = prevNodesRef.current.size === 0
     const nodes: SimulationNode[] = data.map((d) => {
       const prev = prevNodesRef.current.get(d.komoditasId)
       return {
         ...d,
-        x: prev?.x ?? width / 2 + (Math.random() - 0.5) * 100,
-        y: prev?.y ?? height / 2 + (Math.random() - 0.5) * 100,
+        // First render: semua mulai dari tengah supaya animasi menyebar keluar.
+        // Subsequent renders: pakai posisi sebelumnya supaya tidak loncat.
+        x: prev?.x ?? (isFirstRender ? width / 2 : width / 2 + (Math.random() - 0.5) * 100),
+        y: prev?.y ?? (isFirstRender ? height / 2 : height / 2 + (Math.random() - 0.5) * 100),
         vx: 0,
         vy: 0,
         fx: null,
@@ -59,14 +62,17 @@ export function BubbleChart({
     const svg = d3.select(svgRef.current)
 
     // Setup force simulation
+    // forceX/Y dengan strength moderat menarik semua bubble ke tengah canvas.
+    // Bubble besar (radius besar) punya massa lebih besar sehingga lebih lambat
+    // bergerak — forceX/Y mengimbangi ini dengan strength yang sama untuk semua.
+    // forceManyBody dikurangi supaya tidak terlalu mendorong bubble kecil ke pinggir.
     const simulation = d3
       .forceSimulation<SimulationNode>(nodes)
-      .force('center', d3.forceCenter(width / 2, height / 2))
-      .force(
-        'collide',
-        d3.forceCollide<SimulationNode>((d) => d.radius + 2),
-      )
-      .force('charge', d3.forceManyBody<SimulationNode>().strength(-30))
+      .force('center', d3.forceCenter(width / 2, height / 2).strength(0.05))
+      .force('x', d3.forceX<SimulationNode>(width / 2).strength(0.12))
+      .force('y', d3.forceY<SimulationNode>(height / 2).strength(0.12))
+      .force('collide', d3.forceCollide<SimulationNode>((d) => d.radius + 8).strength(0.9))
+      .force('charge', d3.forceManyBody<SimulationNode>().strength(-5))
 
     simulationRef.current = simulation
 
@@ -95,7 +101,8 @@ export function BubbleChart({
         const id = el.attr('data-text-id')
         const node = nodeMap.get(id)
         if (node) {
-          el.attr('x', node.x).attr('y', node.y)
+          const offset = parseFloat(el.attr('data-offset') ?? '0')
+          el.attr('x', node.x).attr('y', node.y + offset)
         }
       })
     })
@@ -140,9 +147,57 @@ export function BubbleChart({
           // Arrow indicator: omit for stable color (#6b7280)
           const isStable = d.color === '#6b7280'
           const arrow = isStable ? '' : d.perubahan > 0 ? '↑' : d.perubahan < 0 ? '↓' : ''
-          const pct = `${Math.abs(d.perubahan).toFixed(1)}%`
-          const shortName = d.nama.length > 10 ? d.nama.substring(0, 10) : d.nama
-          const labelText = arrow ? `${shortName} ${arrow}${pct}` : `${shortName} ${pct}`
+          const pct = arrow
+            ? `${arrow}${Math.abs(d.perubahan).toFixed(1)}%`
+            : `${Math.abs(d.perubahan).toFixed(1)}%`
+
+          // Font sizes scale with radius — name is larger, pct is ~70% of name size
+          const nameFontSize = Math.max(10, Math.min(22, d.radius * 0.28))
+          const pctFontSize = Math.max(8, Math.min(16, d.radius * 0.2))
+
+          // Split name into up to 2 lines based on available bubble width
+          // Approx char width = 0.55 * fontSize for mixed-case text
+          const charWidth = nameFontSize * 0.55
+          const maxWidth = d.radius * 1.7 // usable chord width
+          const maxCharsPerLine = Math.max(3, Math.floor(maxWidth / charWidth))
+
+          let nameLine1 = d.nama
+          let nameLine2: string | null = null
+
+          if (d.nama.length > maxCharsPerLine) {
+            // Try to split at a space within the first line budget
+            const slice = d.nama.substring(0, maxCharsPerLine)
+            const lastSpace = slice.lastIndexOf(' ')
+            const splitAt = lastSpace > 0 ? lastSpace : maxCharsPerLine
+
+            nameLine1 = d.nama.substring(0, splitAt).trim()
+            const rest = d.nama.substring(splitAt).trim()
+
+            // Truncate second line if still too long
+            if (rest.length > maxCharsPerLine) {
+              nameLine2 = rest.substring(0, maxCharsPerLine - 1) + '…'
+            } else {
+              nameLine2 = rest
+            }
+          }
+
+          const isTwoLines = nameLine2 !== null
+          const lineHeight = nameFontSize * 1.15
+
+          // Vertical layout (from bubble center):
+          //   single-line name: nameY, then gap, then pct
+          //   two-line name:    line1Y, line2Y, then gap, then pct
+          const gap = pctFontSize * 0.9 // space between name block and pct
+
+          // Total name block height
+          const nameBlockHeight = isTwoLines ? lineHeight + nameFontSize : nameFontSize
+          // Center the whole group (name block + gap + pct) around 0
+          const totalHeight = nameBlockHeight + gap + pctFontSize
+          const blockTop = -totalHeight / 2
+
+          const line1Y = blockTop + nameFontSize / 2
+          const line2Y = isTwoLines ? line1Y + lineHeight : null
+          const pctY = blockTop + nameBlockHeight + gap + pctFontSize / 2
 
           return (
             <g key={d.komoditasId}>
@@ -163,16 +218,49 @@ export function BubbleChart({
                 }}
               />
               {d.radius >= 40 && (
-                <text
-                  data-text-id={d.komoditasId}
-                  textAnchor="middle"
-                  dominantBaseline="middle"
-                  fontSize={Math.max(10, Math.min(13, d.radius * 0.22))}
-                  fill="white"
-                  style={{ pointerEvents: 'none', userSelect: 'none' }}
-                >
-                  {labelText}
-                </text>
+                <>
+                  {/* Name line 1 */}
+                  <text
+                    data-text-id={d.komoditasId}
+                    data-offset={line1Y}
+                    textAnchor="middle"
+                    dominantBaseline="middle"
+                    fontSize={nameFontSize}
+                    fontWeight="500"
+                    fill="white"
+                    style={{ pointerEvents: 'none', userSelect: 'none' }}
+                  >
+                    {nameLine1}
+                  </text>
+                  {/* Name line 2 (if needed) */}
+                  {isTwoLines && line2Y !== null && (
+                    <text
+                      data-text-id={d.komoditasId}
+                      data-offset={line2Y}
+                      textAnchor="middle"
+                      dominantBaseline="middle"
+                      fontSize={nameFontSize}
+                      fontWeight="500"
+                      fill="white"
+                      style={{ pointerEvents: 'none', userSelect: 'none' }}
+                    >
+                      {nameLine2}
+                    </text>
+                  )}
+                  {/* Percentage — smaller, below name block */}
+                  <text
+                    data-text-id={d.komoditasId}
+                    data-offset={pctY}
+                    textAnchor="middle"
+                    dominantBaseline="middle"
+                    fontSize={pctFontSize}
+                    fontWeight="400"
+                    fill="rgba(255,255,255,0.9)"
+                    style={{ pointerEvents: 'none', userSelect: 'none' }}
+                  >
+                    {pct}
+                  </text>
+                </>
               )}
             </g>
           )
