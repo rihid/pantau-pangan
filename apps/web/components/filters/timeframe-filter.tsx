@@ -1,6 +1,5 @@
 'use client'
 
-import { Button } from '@/components/ui/button'
 import { TIMEFRAME_DAYS } from '@pantau-pangan/shared'
 import type { Timeframe } from '@pantau-pangan/shared'
 
@@ -31,7 +30,7 @@ export function TimeframeFilter({
   availableDays,
 }: TimeframeFilterProps) {
   return (
-    <div className="flex gap-1">
+    <div className="flex bg-zinc-900/80 backdrop-blur-md p-1 rounded-full border border-white/10 gap-1">
       {TIMEFRAMES.map((tf) => {
         const isActive = value === tf
         const isDisabled = disabledTimeframes?.has(tf) ?? false
@@ -44,19 +43,21 @@ export function TimeframeFilter({
             : undefined
 
         return (
-          <Button
+          <button
             key={tf}
-            variant={isActive ? 'default' : 'outline'}
-            size="sm"
             disabled={isDisabled}
             title={title}
             onClick={() => {
               if (!isDisabled) onChange(tf)
             }}
-            className={isDisabled ? 'opacity-40 cursor-not-allowed' : undefined}
+            className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${
+              isActive
+                ? 'bg-zinc-800 text-white shadow-sm'
+                : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
+            } ${isDisabled ? 'opacity-40 cursor-not-allowed' : ''}`}
           >
             {tf}
-          </Button>
+          </button>
         )
       })}
     </div>

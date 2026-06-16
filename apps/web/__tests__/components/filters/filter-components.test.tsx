@@ -57,65 +57,43 @@ describe('TimeframeFilter', () => {
     }
   })
 
-  it('disables timeframe buttons when disabledTimeframes is provided', () => {
-    const disabledTimeframes = new Set<Timeframe>(['1M', '3M', '1Y'])
-    render(
-      <TimeframeFilter
-        value="1W"
-        onChange={vi.fn()}
-        disabledTimeframes={disabledTimeframes}
-        availableDays={10}
-      />,
-    )
-    expect(screen.getByRole('button', { name: '1M' })).toBeDisabled()
-    expect(screen.getByRole('button', { name: '3M' })).toBeDisabled()
-    expect(screen.getByRole('button', { name: '1Y' })).toBeDisabled()
-    expect(screen.getByRole('button', { name: '1D' })).not.toBeDisabled()
-    expect(screen.getByRole('button', { name: '1W' })).not.toBeDisabled()
+  it('shows badge on active button when actualDays < TIMEFRAME_DAYS', () => {
+    // 1W has TIMEFRAME_DAYS = 7, so 5 < 7 → badge shown
+    const dataBadge = { '1D': null, '1W': 5, '1M': null, '3M': null, '1Y': null } as Record<
+      Timeframe,
+      number | null
+    >
+    render(<TimeframeFilter value="1W" onChange={vi.fn()} dataBadge={dataBadge} />)
+    expect(screen.getByText('1W · 5d')).toBeInTheDocument()
   })
 
-  it('does not disable any button when disabledTimeframes is empty', () => {
-    render(
-      <TimeframeFilter
-        value="1W"
-        onChange={vi.fn()}
-        disabledTimeframes={new Set()}
-        availableDays={365}
-      />,
-    )
-    const buttons = screen.getAllByRole('button')
-    buttons.forEach((btn) => expect(btn).not.toBeDisabled())
+  it('shows badge with 0d when actualDays is zero', () => {
+    const dataBadge = { '1D': null, '1W': 0, '1M': null, '3M': null, '1Y': null } as Record<
+      Timeframe,
+      number | null
+    >
+    render(<TimeframeFilter value="1W" onChange={vi.fn()} dataBadge={dataBadge} />)
+    expect(screen.getByText('1W · 0d')).toBeInTheDocument()
   })
 
-  it('shows tooltip on disabled buttons when availableDays is provided', () => {
-    const disabledTimeframes = new Set<Timeframe>(['1M'])
-    render(
-      <TimeframeFilter
-        value="1W"
-        onChange={vi.fn()}
-        disabledTimeframes={disabledTimeframes}
-        availableDays={10}
-      />,
-    )
-    const btn = screen.getByRole('button', { name: '1M' })
-    expect(btn).toHaveAttribute('title')
-    expect(btn.getAttribute('title')).toContain('10 hari')
+  it('does not show badge when actualDays >= TIMEFRAME_DAYS', () => {
+    // 1W has TIMEFRAME_DAYS = 7, so 7 >= 7 → no badge
+    const dataBadge = { '1D': null, '1W': 7, '1M': null, '3M': null, '1Y': null } as Record<
+      Timeframe,
+      number | null
+    >
+    render(<TimeframeFilter value="1W" onChange={vi.fn()} dataBadge={dataBadge} />)
+    expect(screen.queryByText('1W · 7d')).not.toBeInTheDocument()
   })
 
-  it('does not call onChange when a disabled button is clicked', async () => {
-    const user = userEvent.setup()
-    const onChange = vi.fn()
-    const disabledTimeframes = new Set<Timeframe>(['1M'])
-    render(
-      <TimeframeFilter
-        value="1W"
-        onChange={onChange}
-        disabledTimeframes={disabledTimeframes}
-        availableDays={10}
-      />,
-    )
-    await user.click(screen.getByRole('button', { name: '1M' }))
-    expect(onChange).not.toHaveBeenCalled()
+  it('does not show badge on inactive buttons', () => {
+    // active is 1D, badge data for 1W — badge should NOT appear since 1W is not active
+    const dataBadge = { '1D': null, '1W': 3, '1M': null, '3M': null, '1Y': null } as Record<
+      Timeframe,
+      number | null
+    >
+    render(<TimeframeFilter value="1D" onChange={vi.fn()} dataBadge={dataBadge} />)
+    expect(screen.queryByText('1W · 3d')).not.toBeInTheDocument()
   })
 })
 

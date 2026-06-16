@@ -43,15 +43,12 @@ export function BubbleChart({
     }
 
     // Build SimulationNode[] from BubbleData[], preserving previous positions
-    const isFirstRender = prevNodesRef.current.size === 0
     const nodes: SimulationNode[] = data.map((d) => {
       const prev = prevNodesRef.current.get(d.komoditasId)
       return {
         ...d,
-        // First render: semua mulai dari tengah supaya animasi menyebar keluar.
-        // Subsequent renders: pakai posisi sebelumnya supaya tidak loncat.
-        x: prev?.x ?? (isFirstRender ? width / 2 : width / 2 + (Math.random() - 0.5) * 100),
-        y: prev?.y ?? (isFirstRender ? height / 2 : height / 2 + (Math.random() - 0.5) * 100),
+        x: prev?.x ?? width / 2 + (Math.random() - 0.5) * 100,
+        y: prev?.y ?? height / 2 + (Math.random() - 0.5) * 100,
         vx: 0,
         vy: 0,
         fx: null,
@@ -62,17 +59,14 @@ export function BubbleChart({
     const svg = d3.select(svgRef.current)
 
     // Setup force simulation
-    // forceX/Y dengan strength moderat menarik semua bubble ke tengah canvas.
-    // Bubble besar (radius besar) punya massa lebih besar sehingga lebih lambat
-    // bergerak — forceX/Y mengimbangi ini dengan strength yang sama untuk semua.
-    // forceManyBody dikurangi supaya tidak terlalu mendorong bubble kecil ke pinggir.
     const simulation = d3
       .forceSimulation<SimulationNode>(nodes)
-      .force('center', d3.forceCenter(width / 2, height / 2).strength(0.05))
-      .force('x', d3.forceX<SimulationNode>(width / 2).strength(0.12))
-      .force('y', d3.forceY<SimulationNode>(height / 2).strength(0.12))
-      .force('collide', d3.forceCollide<SimulationNode>((d) => d.radius + 8).strength(0.9))
-      .force('charge', d3.forceManyBody<SimulationNode>().strength(-5))
+      .force('center', d3.forceCenter(width / 2, height / 2))
+      .force(
+        'collide',
+        d3.forceCollide<SimulationNode>((d) => d.radius + 2),
+      )
+      .force('charge', d3.forceManyBody<SimulationNode>().strength(-30))
 
     simulationRef.current = simulation
 

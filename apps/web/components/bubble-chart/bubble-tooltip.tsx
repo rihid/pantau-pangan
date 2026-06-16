@@ -65,7 +65,7 @@ function Sparkline({ data }: { data: HargaHarian[] }) {
       <polyline
         points={polylinePoints}
         fill="none"
-        stroke="#6b7280"
+        stroke="#9ca3af"
         strokeWidth="1.5"
         strokeLinejoin="round"
         strokeLinecap="round"
@@ -90,16 +90,16 @@ function TooltipContent({ bubble, provinsiId }: { bubble: BubbleData; provinsiId
   return (
     <>
       {/* Nama komoditas */}
-      <p className="text-sm font-semibold text-gray-900 leading-tight">{bubble.nama}</p>
+      <p className="text-sm font-bold text-white leading-tight">{bubble.nama}</p>
 
       {/* Harga */}
-      <p className="text-sm text-gray-700 mt-1">{formattedHarga}</p>
+      <p className="text-sm text-zinc-300 mt-1">{formattedHarga}</p>
 
       {/* Persentase perubahan dengan arrow dan warna */}
-      <p className={`text-sm font-medium mt-0.5 ${colorClass}`}>{formattedPerubahan}</p>
+      <p className={`text-sm font-bold mt-0.5 ${colorClass}`}>{formattedPerubahan}</p>
 
       {/* Satuan */}
-      <p className="text-xs text-gray-400 mt-0.5">per kg</p>
+      <p className="text-xs text-zinc-500 mt-0.5">per kg</p>
 
       {/* Sparkline — hanya jika radius >= 50 dan data tersedia dan tidak error */}
       {showSparkline && !isError && historisData && historisData.length >= 2 && (
@@ -127,7 +127,7 @@ export function BubbleTooltip({ bubble, x, y, provinsiId }: BubbleTooltipProps) 
   return (
     <div
       role="tooltip"
-      className="absolute z-50 bg-white rounded-lg shadow-lg border border-gray-100 p-3 pointer-events-none transition-opacity duration-100 opacity-100"
+      className="absolute z-50 bg-zinc-900/95 backdrop-blur-md rounded-xl shadow-[0_4px_30px_rgba(0,0,0,0.5)] border border-white/10 p-4 pointer-events-none transition-opacity duration-150 opacity-100"
       style={{
         left: pos.x,
         top: pos.y,
