@@ -25,6 +25,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="id" className={`${geistSans.variable} ${geistMono.variable} antialiased dark`}>
+      <head>
+        {/* Apply saved theme before first paint to avoid flash */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){var t=localStorage.getItem('theme');if(t==='light'){document.documentElement.classList.remove('dark');document.documentElement.classList.add('light');}})();`,
+          }}
+        />
+      </head>
       <body className="bg-background text-foreground">
         <QueryProvider>{children}</QueryProvider>
       </body>

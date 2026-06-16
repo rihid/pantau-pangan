@@ -41,3 +41,26 @@ export function parseDateKeys(row: Record<string, unknown>): string[] {
     .filter((k) => /^\d{2}\/\d{2}\/\d{4}$/.test(k))
     .sort()
 }
+
+/**
+ * Buat SVG polyline points string dari array harga.
+ * Output: string "x1,y1 x2,y2 ..." yang siap dipakai di SVG <polyline points=...>
+ */
+export function buildSparklinePoints(
+  prices: number[],
+  width: number,
+  height: number,
+  padding = 4,
+): string {
+  if (prices.length < 2) return ''
+  const min = Math.min(...prices)
+  const max = Math.max(...prices)
+  const range = max - min || 1
+  return prices
+    .map((p, i) => {
+      const px = padding + (i / (prices.length - 1)) * (width - padding * 2)
+      const py = padding + (1 - (p - min) / range) * (height - padding * 2)
+      return `${px.toFixed(1)},${py.toFixed(1)}`
+    })
+    .join(' ')
+}

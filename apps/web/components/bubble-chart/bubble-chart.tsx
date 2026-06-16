@@ -3,6 +3,7 @@
 import * as d3 from 'd3'
 import { useEffect, useRef } from 'react'
 import { clampBubblePosition } from '@/lib/bubble-utils'
+import { buildSparklinePoints } from '@pantau-pangan/shared'
 import type { BubbleData } from '@pantau-pangan/shared'
 
 interface SimulationNode extends BubbleData {
@@ -19,6 +20,10 @@ interface BubbleChartProps {
   isRefetching?: boolean
   width: number
   height: number
+  /** Map komoditasId → prices untuk sparkline (radius >= 50px) */
+  sparklines?: Map<number, number[]>
+  /** Highlight bubbles yang namanya cocok dengan query ini */
+  searchQuery?: string
   onBubbleHover: (bubble: BubbleData | null, x: number, y: number) => void
 }
 
@@ -27,6 +32,8 @@ export function BubbleChart({
   isRefetching = false,
   width,
   height,
+  sparklines,
+  searchQuery,
   onBubbleHover,
 }: BubbleChartProps) {
   const svgRef = useRef<SVGSVGElement>(null)
@@ -99,6 +106,19 @@ export function BubbleChart({
           el.attr('x', node.x).attr('y', node.y + offset)
         }
       })
+
+      // Update sparkline polyline positions
+      svg.selectAll<SVGPolylineElement, unknown>('polyline[data-sparkline-id]').each(function () {
+        const el = d3.select(this)
+        const id = el.attr('data-sparkline-id')
+        const node = nodeMap.get(id)
+        if (node) {
+          el.attr(
+            'transform',
+            `translate(${node.x - SPARKLINE_W / 2},${node.y + SPARKLINE_OFFSET_Y})`,
+          )
+        }
+      })
     })
 
     // When simulation ends, save positions for next update
@@ -123,6 +143,10 @@ export function BubbleChart({
 
   const ariaLabel = `Bubble chart harga pangan — ${data.length} komoditas`
 
+  // Normalise search query for case-insensitive match
+  const query = searchQuery?.trim().toLowerCase() ?? ''
+  const hasQuery = query.length > 0
+
   return (
     <div className={`w-full h-full${isRefetching ? ' opacity-50' : ''}`}>
       <svg
@@ -145,6 +169,9 @@ export function BubbleChart({
             ? `${arrow}${Math.abs(d.perubahan).toFixed(1)}%`
             : `${Math.abs(d.perubahan).toFixed(1)}%`
 
+          // Search highlight: dim non-matching bubbles
+          const isMatch = hasQuery ? d.nama.toLowerCase().includes(query) : true
+
           // Font sizes scale with radius — name is larger, pct is ~70% of name size
           const nameFontSize = Math.max(10, Math.min(22, d.radius * 0.28))
           const pctFontSize = Math.max(8, Math.min(16, d.radius * 0.2))
@@ -159,7 +186,6 @@ export function BubbleChart({
           let nameLine2: string | null = null
 
           if (d.nama.length > maxCharsPerLine) {
-            // Try to split at a space within the first line budget
             const slice = d.nama.substring(0, maxCharsPerLine)
             const lastSpace = slice.lastIndexOf(' ')
             const splitAt = lastSpace > 0 ? lastSpace : maxCharsPerLine
@@ -167,7 +193,6 @@ export function BubbleChart({
             nameLine1 = d.nama.substring(0, splitAt).trim()
             const rest = d.nama.substring(splitAt).trim()
 
-            // Truncate second line if still too long
             if (rest.length > maxCharsPerLine) {
               nameLine2 = rest.substring(0, maxCharsPerLine - 1) + '…'
             } else {
@@ -177,24 +202,34 @@ export function BubbleChart({
 
           const isTwoLines = nameLine2 !== null
           const lineHeight = nameFontSize * 1.15
+          const gap = pctFontSize * 0.9
 
-          // Vertical layout (from bubble center):
-          //   single-line name: nameY, then gap, then pct
-          //   two-line name:    line1Y, line2Y, then gap, then pct
-          const gap = pctFontSize * 0.9 // space between name block and pct
+          // When sparkline is shown, shift labels up to make room
+          const hasSparkline = d.radius >= 50 && (sparklines?.has(d.komoditasId) ?? false)
+          const sparklineExtraShift = hasSparkline ? -(SPARKLINE_H / 2 + 4) : 0
 
-          // Total name block height
           const nameBlockHeight = isTwoLines ? lineHeight + nameFontSize : nameFontSize
-          // Center the whole group (name block + gap + pct) around 0
           const totalHeight = nameBlockHeight + gap + pctFontSize
-          const blockTop = -totalHeight / 2
+          const blockTop = -totalHeight / 2 + sparklineExtraShift
 
           const line1Y = blockTop + nameFontSize / 2
           const line2Y = isTwoLines ? line1Y + lineHeight : null
           const pctY = blockTop + nameBlockHeight + gap + pctFontSize / 2
 
+          // Sparkline: positioned below the text block
+          const sparklinePoints =
+            hasSparkline && sparklines
+              ? buildSparklinePoints(sparklines.get(d.komoditasId) ?? [], SPARKLINE_W, SPARKLINE_H)
+              : ''
+
           return (
-            <g key={d.komoditasId}>
+            <g
+              key={d.komoditasId}
+              style={{
+                opacity: hasQuery ? (isMatch ? 1 : 0.2) : 1,
+                transition: 'opacity 0.2s',
+              }}
+            >
               <circle
                 data-id={d.komoditasId}
                 r={d.radius}
@@ -211,6 +246,20 @@ export function BubbleChart({
                   onBubbleHover(null, 0, 0)
                 }}
               />
+
+              {/* Search highlight ring */}
+              {hasQuery && isMatch && (
+                <circle
+                  data-id={d.komoditasId}
+                  r={d.radius + 3}
+                  fill="none"
+                  stroke="white"
+                  strokeWidth={2}
+                  strokeOpacity={0.6}
+                  style={{ pointerEvents: 'none' }}
+                />
+              )}
+
               {d.radius >= 40 && (
                 <>
                   {/* Name line 1 */}
@@ -254,6 +303,20 @@ export function BubbleChart({
                   >
                     {pct}
                   </text>
+
+                  {/* Sparkline — only for radius >= 50 and data available */}
+                  {hasSparkline && sparklinePoints && (
+                    <polyline
+                      data-sparkline-id={d.komoditasId}
+                      points={sparklinePoints}
+                      fill="none"
+                      stroke="rgba(255,255,255,0.6)"
+                      strokeWidth={1.5}
+                      strokeLinejoin="round"
+                      strokeLinecap="round"
+                      style={{ pointerEvents: 'none' }}
+                    />
+                  )}
                 </>
               )}
             </g>
@@ -263,3 +326,9 @@ export function BubbleChart({
     </div>
   )
 }
+
+// Sparkline dimensions (constant, used in tick handler too)
+const SPARKLINE_W = 60
+const SPARKLINE_H = 20
+// Vertical offset from bubble center to top of sparkline
+const SPARKLINE_OFFSET_Y = 10

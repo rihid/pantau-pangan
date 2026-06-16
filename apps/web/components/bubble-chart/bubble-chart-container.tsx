@@ -6,6 +6,7 @@ import { BubbleChart } from './bubble-chart'
 import { BubbleChartSkeleton } from './bubble-chart-skeleton'
 import { BubbleChartError } from './bubble-chart-error'
 import { BubbleTooltip } from './bubble-tooltip'
+import { useSparklines } from '@/lib/hooks/use-sparklines'
 
 interface BubbleChartContainerProps {
   data: BubbleData[]
@@ -14,6 +15,7 @@ interface BubbleChartContainerProps {
   isRefetching: boolean
   onRetry: () => void
   provinsiId: number
+  searchQuery?: string
 }
 
 interface Dimensions {
@@ -34,6 +36,7 @@ export function BubbleChartContainer({
   isRefetching,
   onRetry,
   provinsiId,
+  searchQuery,
 }: BubbleChartContainerProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [dimensions, setDimensions] = useState<Dimensions>({ width: 0, height: 0 })
@@ -43,8 +46,10 @@ export function BubbleChartContainer({
     y: 0,
   })
 
-  // Track previous dimensions to apply the 50px threshold (Requirement 9.4)
   const prevDimensionsRef = useRef<Dimensions>({ width: 0, height: 0 })
+
+  // Fetch sparkline data for large bubbles
+  const sparklines = useSparklines(data, provinsiId)
 
   useEffect(() => {
     const container = containerRef.current
@@ -57,7 +62,7 @@ export function BubbleChartContainer({
       const { width, height } = entry.contentRect
       const prev = prevDimensionsRef.current
 
-      // Only update (and restart simulation) if change > 50px — Requirement 9.4
+      // Only update (and restart simulation) if change > 50px
       if (Math.abs(width - prev.width) > 50 || Math.abs(height - prev.height) > 50) {
         prevDimensionsRef.current = { width, height }
         setDimensions({ width, height })
@@ -73,27 +78,24 @@ export function BubbleChartContainer({
   }
 
   return (
-    // flex-1 fills remaining viewport height after header + filter controls (Requirement 9.1)
     <div ref={containerRef} className="relative w-full h-full">
       {isLoading ? (
-        // Initial loading — show skeleton (Requirement 8.1)
         <BubbleChartSkeleton />
       ) : isError ? (
-        // Error state takes priority over refetching overlay (Requirement 8.3)
         <BubbleChartError onRetry={onRetry} />
       ) : (
         <>
-          {/* BubbleChart with opacity-50 overlay when refetching (Requirement 8.2) */}
           <div className={isRefetching ? 'opacity-50' : undefined}>
             <BubbleChart
               data={data}
               width={dimensions.width}
               height={dimensions.height}
+              sparklines={sparklines}
+              searchQuery={searchQuery}
               onBubbleHover={handleBubbleHover}
             />
           </div>
 
-          {/* BubbleTooltip rendered outside SVG as sibling div (Requirement 5.6) */}
           <BubbleTooltip
             bubble={hoveredBubble.bubble}
             x={hoveredBubble.x}
