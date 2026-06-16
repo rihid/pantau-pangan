@@ -1,4 +1,10 @@
-import type { BubbleData, HargaHarian, Provinsi, Timeframe } from '@pantau-pangan/shared'
+import type {
+  BubbleData,
+  DataRangeResponse,
+  HargaHarian,
+  Provinsi,
+  Timeframe,
+} from '@pantau-pangan/shared'
 
 export const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001'
 
@@ -23,4 +29,8 @@ export function fetchHistorisKomoditas(
   provinsiId: number,
 ): Promise<HargaHarian[]> {
   return apiFetch<HargaHarian[]>(`/komoditas/${komoditasId}/historis?provinsiId=${provinsiId}`)
+}
+
+export function fetchDataRange(provinsiId: number): Promise<DataRangeResponse> {
+  return apiFetch<DataRangeResponse>(`/komoditas/data-range?provinsiId=${provinsiId}`)
 }

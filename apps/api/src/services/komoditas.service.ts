@@ -1,4 +1,4 @@
-import { eq, sql, asc } from 'drizzle-orm'
+import { eq, sql, asc, min, max } from 'drizzle-orm'
 import {
   BI_BASE_URL,
   PRICE_TYPE_ID,
@@ -7,10 +7,11 @@ import {
   getBubbleRadius,
   getBubbleColor,
   TIMEFRAME_DAYS,
+  BUBBLE_MIN_RADIUS,
 } from '@pantau-pangan/shared'
-import type { Timeframe, BubbleData } from '@pantau-pangan/shared'
+import type { Timeframe, BubbleData, DataRangeResponse } from '@pantau-pangan/shared'
 import { db } from '../db'
-import { komoditas, provinsi } from '../db/schema'
+import { komoditas, provinsi, hargaHarian } from '../db/schema'
 import { ApiError } from '../lib/validators'
 
 /**
@@ -22,13 +23,6 @@ export async function getAllKomoditas(
   timeframe: Timeframe,
 ): Promise<BubbleData[]> {
   const level = provinsiId === 0 ? 0 : 1
-  const days = TIMEFRAME_DAYS[timeframe]
-
-  // Hitung tanggal target
-  const today = new Date()
-  const targetDate = new Date(today)
-  targetDate.setDate(today.getDate() - days)
-  const targetDateStr = targetDate.toISOString().split('T')[0] // YYYY-MM-DD
 
   // 1. Ambil semua komoditas master
   const allKomoditas = await db.select().from(komoditas)
@@ -43,16 +37,44 @@ export async function getAllKomoditas(
     ORDER BY komoditas_id, tanggal DESC
   `)
 
-  // 3. Harga target per komoditas (tanggal terdekat <= target_date)
-  const hargaTarget = await db.execute(sql`
-    SELECT DISTINCT ON (komoditas_id)
-      komoditas_id, harga, tanggal
-    FROM harga_harian
-    WHERE level = ${level}
-      AND ${provinsiId === 0 ? sql`provinsi_id IS NULL` : sql`provinsi_id = ${provinsiId}`}
-      AND tanggal <= ${targetDateStr}
-    ORDER BY komoditas_id, tanggal DESC
-  `)
+  // 3. Harga target per komoditas
+  // Untuk 1D: bandingkan harga terbaru vs harga sebelumnya (row ke-2 terbaru)
+  // Untuk timeframe lain: cari tanggal terdekat <= today - days
+  let hargaTarget
+
+  if (timeframe === '1D') {
+    // Ambil 2 tanggal terbaru per komoditas, lalu pakai yang ke-2 sebagai target
+    hargaTarget = await db.execute(sql`
+      SELECT DISTINCT ON (komoditas_id)
+        komoditas_id, harga, tanggal
+      FROM harga_harian
+      WHERE level = ${level}
+        AND ${provinsiId === 0 ? sql`provinsi_id IS NULL` : sql`provinsi_id = ${provinsiId}`}
+        AND tanggal < (
+          SELECT MAX(tanggal)
+          FROM harga_harian h2
+          WHERE h2.komoditas_id = harga_harian.komoditas_id
+            AND h2.level = ${level}
+            AND ${provinsiId === 0 ? sql`h2.provinsi_id IS NULL` : sql`h2.provinsi_id = ${provinsiId}`}
+        )
+      ORDER BY komoditas_id, tanggal DESC
+    `)
+  } else {
+    const today = new Date()
+    const targetDate = new Date(today)
+    targetDate.setDate(today.getDate() - TIMEFRAME_DAYS[timeframe])
+    const targetDateStr = targetDate.toISOString().split('T')[0] // YYYY-MM-DD
+
+    hargaTarget = await db.execute(sql`
+      SELECT DISTINCT ON (komoditas_id)
+        komoditas_id, harga, tanggal
+      FROM harga_harian
+      WHERE level = ${level}
+        AND ${provinsiId === 0 ? sql`provinsi_id IS NULL` : sql`provinsi_id = ${provinsiId}`}
+        AND tanggal <= ${targetDateStr}
+      ORDER BY komoditas_id, tanggal DESC
+    `)
+  }
 
   // 4. Build lookup maps
   const hargaTerbaruMap = new Map<number, { harga: number; tanggal: string }>()
@@ -74,7 +96,17 @@ export async function getAllKomoditas(
   }
 
   // 5. Gabungkan dan hitung bubble data
-  return allKomoditas.map((k) => {
+  // Hitung perubahan dulu untuk semua komoditas, lalu cari max untuk normalisasi radius
+  const perubahans = allKomoditas.map((k) => {
+    const terbaru = hargaTerbaruMap.get(k.id)
+    const target = hargaTargetMap.get(k.id)
+    if (!terbaru || !target) return 0
+    return hitungPerubahan(terbaru.harga, target.harga)
+  })
+
+  const maxAbsPersen = Math.max(...perubahans.map(Math.abs), 0)
+
+  return allKomoditas.map((k, i) => {
     const terbaru = hargaTerbaruMap.get(k.id)
     const target = hargaTargetMap.get(k.id)
 
@@ -86,19 +118,19 @@ export async function getAllKomoditas(
         kategori: k.kategori,
         harga: terbaru ? terbaru.harga : 0,
         perubahan: 0,
-        radius: 30,
+        radius: BUBBLE_MIN_RADIUS,
         color: '#6b7280',
       }
     }
 
-    const perubahan = hitungPerubahan(terbaru.harga, target.harga)
+    const perubahan = perubahans[i] ?? 0
     return {
       komoditasId: k.id,
       nama: k.nama,
       kategori: k.kategori,
       harga: terbaru.harga,
       perubahan,
-      radius: getBubbleRadius(perubahan, timeframe),
+      radius: getBubbleRadius(perubahan, timeframe, maxAbsPersen),
       color: getBubbleColor(perubahan, timeframe),
     }
   })
@@ -176,4 +208,36 @@ export async function getProvinsiList(): Promise<
     .select({ id: provinsi.id, biId: provinsi.biId, nama: provinsi.nama })
     .from(provinsi)
     .orderBy(asc(provinsi.nama))
+}
+
+/**
+ * Kembalikan rentang tanggal data yang tersedia di DB untuk level nasional.
+ * Dipakai FE untuk disable timeframe yang datanya tidak cukup.
+ */
+export async function getDataRange(provinsiId: number): Promise<DataRangeResponse> {
+  const level = provinsiId === 0 ? 0 : 1
+
+  const result = await db
+    .select({
+      oldest: min(hargaHarian.tanggal),
+      newest: max(hargaHarian.tanggal),
+    })
+    .from(hargaHarian)
+    .where(
+      provinsiId === 0
+        ? eq(hargaHarian.level, level)
+        : sql`${hargaHarian.level} = ${level} AND ${hargaHarian.provinsiId} = ${provinsiId}`,
+    )
+
+  const row = result[0]
+  const oldest = row?.oldest ?? null
+  const newest = row?.newest ?? null
+
+  let availableDays = 0
+  if (oldest && newest) {
+    const msPerDay = 1000 * 60 * 60 * 24
+    availableDays = Math.round((new Date(newest).getTime() - new Date(oldest).getTime()) / msPerDay)
+  }
+
+  return { oldestDate: oldest, newestDate: newest, availableDays }
 }
