@@ -16,6 +16,8 @@ interface BubbleChartContainerProps {
   onRetry: () => void
   provinsiId: number
   searchQuery?: string
+  /** Optional click handler — diteruskan ke BubbleChart untuk membuka modal */
+  onBubbleClick?: (bubble: BubbleData) => void
 }
 
 interface Dimensions {
@@ -37,6 +39,7 @@ export function BubbleChartContainer({
   onRetry,
   provinsiId,
   searchQuery,
+  onBubbleClick,
 }: BubbleChartContainerProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [dimensions, setDimensions] = useState<Dimensions>({ width: 0, height: 0 })
@@ -93,6 +96,7 @@ export function BubbleChartContainer({
               sparklines={sparklines}
               searchQuery={searchQuery}
               onBubbleHover={handleBubbleHover}
+              onBubbleClick={onBubbleClick}
             />
           </div>
 

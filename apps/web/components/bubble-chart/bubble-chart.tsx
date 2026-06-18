@@ -25,6 +25,8 @@ interface BubbleChartProps {
   /** Highlight bubbles yang namanya cocok dengan query ini */
   searchQuery?: string
   onBubbleHover: (bubble: BubbleData | null, x: number, y: number) => void
+  /** Optional click handler — opens detail modal */
+  onBubbleClick?: (bubble: BubbleData) => void
 }
 
 export function BubbleChart({
@@ -35,6 +37,7 @@ export function BubbleChart({
   sparklines,
   searchQuery,
   onBubbleHover,
+  onBubbleClick,
 }: BubbleChartProps) {
   const svgRef = useRef<SVGSVGElement>(null)
   const simulationRef = useRef<d3.Simulation<SimulationNode, undefined> | null>(null)
@@ -245,6 +248,7 @@ export function BubbleChart({
                 onMouseLeave={() => {
                   onBubbleHover(null, 0, 0)
                 }}
+                onClick={() => onBubbleClick?.(d)}
               />
 
               {/* Search highlight ring */}
