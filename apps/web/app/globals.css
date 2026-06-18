@@ -128,3 +128,22 @@
     @apply font-sans;
   }
 }
+
+@layer components {
+  .bg-page-gradient {
+    background-image: linear-gradient(
+      to bottom,
+      var(--color-background),
+      color-mix(in oklch, var(--color-background) 85%, oklch(0.2 0 240)),
+      var(--color-background)
+    );
+  }
+  .dark .bg-page-gradient {
+    background-image: linear-gradient(
+      to bottom,
+      oklch(0.09 0 0),
+      oklch(0.07 0.01 240),
+      oklch(0 0 0)
+    );
+  }
+}

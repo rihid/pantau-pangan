@@ -9,14 +9,24 @@ export type { LevelFks } from './level-mapping'
 
 const { komoditas, provinsi, kota, pasar, hargaHarian } = schema
 
-// --- Main orchestrator ---
+// --- Exported types ---
 
-async function main(): Promise<void> {
+export interface ScraperResult {
+  rowsInserted: number
+  rowsUpserted: number
+  maxTanggal: string | null // YYYY-MM-DD, date terbaru yang berhasil di-scrape
+  durationMs: number
+  errors: Array<{ komoditas: string; message: string }>
+}
+
+// --- Core scraper logic ---
+
+export async function runScraper(): Promise<ScraperResult> {
   const startTime = Date.now()
   let successCount = 0
-  let failCount = 0
   let totalRows = 0
   let latestDate: string | null = null
+  const errors: Array<{ komoditas: string; message: string }> = []
 
   try {
     // Step 1: Fetch and parse commodities tree
@@ -173,7 +183,10 @@ async function main(): Promise<void> {
         const komoditasId = komoditasIdMap.get(item.comId)
         if (komoditasId == null) {
           console.error(`[scraper]   Could not find komoditas DB id for comId=${item.comId}`)
-          failCount++
+          errors.push({
+            komoditas: item.nama,
+            message: `Could not find komoditas DB id for comId=${item.comId}`,
+          })
           continue
         }
 
@@ -240,34 +253,57 @@ async function main(): Promise<void> {
         successCount++
         console.log(`[scraper]   Inserted/skipped ${rowsInserted} harga rows for ${item.nama}`)
       } catch (error) {
-        failCount++
-        console.error(
-          `[scraper]   Error processing ${item.nama}:`,
-          error instanceof Error ? error.message : error,
-        )
+        const message = error instanceof Error ? error.message : String(error)
+        errors.push({ komoditas: item.nama, message })
+        console.error(`[scraper]   Error processing ${item.nama}:`, message)
       }
     }
   } catch (error) {
+    // Fatal error — close DB connection before throwing
     console.error('[scraper] Fatal error:', error instanceof Error ? error.message : error)
     await closeConnection()
-    process.exit(1)
+    throw error
   }
 
+  const durationMs = Date.now() - startTime
+
   // Summary
-  const duration = ((Date.now() - startTime) / 1000).toFixed(1)
   console.log('[scraper] === Summary ===')
   console.log(`[scraper]   Komoditas succeeded: ${successCount}`)
-  console.log(`[scraper]   Komoditas failed: ${failCount}`)
+  console.log(`[scraper]   Komoditas failed: ${errors.length}`)
   console.log(`[scraper]   Total harga rows: ${totalRows}`)
   console.log(`[scraper]   Latest date: ${latestDate ?? 'none'}`)
-  console.log(`[scraper]   Duration: ${duration}s`)
+  console.log(`[scraper]   Duration: ${(durationMs / 1000).toFixed(1)}s`)
 
   await closeConnection()
 
-  if (successCount === 0) {
-    process.exit(1)
+  return {
+    rowsInserted: totalRows,
+    rowsUpserted: 0, // onConflictDoNothing → conflicts silently skipped, not counted separately
+    maxTanggal: latestDate,
+    durationMs,
+    errors,
   }
-  process.exit(0)
 }
 
-void main()
+// --- CLI entry point ---
+
+async function main(): Promise<void> {
+  try {
+    const result = await runScraper()
+
+    if (result.errors.length > 0 && result.rowsInserted === 0) {
+      // All komoditas failed
+      process.exit(1)
+    }
+    process.exit(0)
+  } catch {
+    // Fatal error already logged and DB closed inside runScraper()
+    process.exit(1)
+  }
+}
+
+// Guard: only auto-run when executed directly, not when imported from scheduler
+if (import.meta.main) {
+  void main()
+}

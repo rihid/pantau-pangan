@@ -35,7 +35,10 @@ export function KomoditasModal({ modalState, onClose }: KomoditasModalProps) {
         if (!open) onClose()
       }}
     >
-      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto p-0">
+      <DialogContent
+        aria-labelledby="komoditas-modal-title"
+        className="max-w-5xl max-h-[90vh] overflow-y-auto p-0"
+      >
         {modalState && (
           <>
             <DialogHeader className="px-4 pt-4 sm:px-6 sm:pt-6 pb-0">

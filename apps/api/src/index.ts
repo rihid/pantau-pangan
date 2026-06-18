@@ -4,6 +4,7 @@ import { errorHandler } from './middleware/error-handler'
 import komoditasRoutes from './routes/komoditas'
 import insightRoutes from './routes/insight'
 import provinsiRoutes from './routes/provinsi'
+import { initScheduler } from './scheduler'
 
 // Requirement 8.4: DATABASE_URL wajib tersedia saat startup
 if (!process.env.DATABASE_URL) {
@@ -34,6 +35,9 @@ app.route('/provinsi', provinsiRoutes)
 
 // Insight di-mount terpisah karena path-nya nested di /komoditas/:id/insight
 app.route('/komoditas', insightRoutes)
+
+// Initialize cron scheduler after all routes are mounted
+initScheduler()
 
 export default {
   port: Number(Bun.env.API_PORT) || 3001,

@@ -28,7 +28,9 @@ export function ModalHeader({
   return (
     <div className="flex flex-col gap-2">
       {/* Nama komoditas sebagai judul aksesibel */}
-      <DialogTitle className="text-xl font-bold leading-tight">{nama}</DialogTitle>
+      <DialogTitle id="komoditas-modal-title" className="text-xl font-bold leading-tight">
+        {nama}
+      </DialogTitle>
 
       {/* Harga dan perubahan */}
       <div className="flex items-center gap-3">
