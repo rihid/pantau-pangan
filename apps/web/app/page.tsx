@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import type { Timeframe } from '@pantau-pangan/shared'
+import type { BubbleData, Timeframe } from '@pantau-pangan/shared'
 import { useKomoditas } from '@/lib/hooks/use-komoditas'
 import { useDataRange } from '@/lib/hooks/use-data-range'
 import { TimeframeFilter } from '@/components/filters/timeframe-filter'
@@ -9,6 +9,7 @@ import { ProvinsiFilter } from '@/components/filters/provinsi-filter'
 import { SearchFilter } from '@/components/filters/search-filter'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { DataFooter } from '@/components/data-footer'
+import { KomoditasModal } from '@/components/modal/komoditas-modal'
 import dynamic from 'next/dynamic'
 
 const BubbleChartContainer = dynamic(
@@ -23,6 +24,12 @@ export default function HomePage() {
   const [timeframe, setTimeframe] = useState<Timeframe>('1D')
   const [provinsiId, setProvinsiId] = useState<number>(0)
   const [searchQuery, setSearchQuery] = useState('')
+  const [modalState, setModalState] = useState<{
+    komoditasId: number
+    nama: string
+    harga: number
+    provinsiId: number
+  } | null>(null)
 
   const { data, isLoading, isError, isRefetching, refetch } = useKomoditas(timeframe, provinsiId)
   const { disabledTimeframes, availableDays, dataRange } = useDataRange(provinsiId)
@@ -33,6 +40,15 @@ export default function HomePage() {
 
   const handleRefresh = () => {
     void refetch()
+  }
+
+  const handleBubbleClick = (bubble: BubbleData) => {
+    setModalState({
+      komoditasId: bubble.komoditasId,
+      nama: bubble.nama,
+      harga: bubble.harga,
+      provinsiId,
+    })
   }
 
   return (
@@ -100,6 +116,7 @@ export default function HomePage() {
           onRetry={handleRefresh}
           provinsiId={provinsiId}
           searchQuery={searchQuery}
+          onBubbleClick={handleBubbleClick}
         />
       </div>
 
@@ -125,6 +142,14 @@ export default function HomePage() {
           earliestDate={dataRange?.oldestDate ?? undefined}
         />
       </div>
+
+      {/* Modal detail komoditas */}
+      <KomoditasModal
+        modalState={modalState}
+        onClose={() => {
+          setModalState(null)
+        }}
+      />
     </main>
   )
 }

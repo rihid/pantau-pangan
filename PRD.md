@@ -3,7 +3,7 @@
 > Visualisasi harga pangan strategis nasional berbasis bubble chart interaktif
 
 **Version:** 1.7  
-**Status:** M3 API Done — Ready for M4  
+**Status:** M5 Modal Detail Done — Ready for M6  
 **Stack finalized:** ✅
 
 > **Branding:** Nama project resmi adalah **Pantau Pangan**. "Gelembung" boleh dipakai sebagai tagline visual (mis. _"Pantau Pangan — gelembung harga pangan strategis"_), tapi semua nama folder, package, database, dan domain pakai `pantau-pangan` / `pantaupangan.id`.
@@ -454,8 +454,8 @@ Cron harian (07.00 WIB) — dengan retry adaptif:
 | **M1 — Foundation**   | ✅ Done | Monorepo Bun + Turborepo 2, TypeScript 6 strict, ESLint 10 flat config (idiomatic typescript-eslint v8 dengan `tseslint.config()` helper), Prettier 3, Husky 9 + lint-staged + commitlint, 4 package skeleton (`apps/api` Hono, `apps/web` Next 16 + Tailwind 4 + React 19, `packages/shared`, `packages/scraper`), 4 hook gate verified |
 | **M2 — Scraper**      | ✅ Done | Drizzle schema (6 tabel), migration, shared types/constants/utils, fetcher (retry + backoff), parser, orchestrator (upsert idempotent), 40 property tests                                                                                                                                                                                |
 | **M3 — API**          | ✅ Done | Hono routes + services: `/komoditas` (bubble data), `/komoditas/:id/historis`, `/komoditas/:id/detail` (proxy BI), `/komoditas/:id/insight` (LLM + cache), `/provinsi`. Thin route handler → service layer architecture, error handler, validators, 78 tests (property + integration)                                                    |
-| **M4 — Bubble Chart** | Pending | D3.js force simulation, warna, ukuran, label, animasi, filter timeframe                                                                                                                                                                                                                                                                  |
-| **M5 — Modal Detail** | Pending | Chart historis, tabel geografis collapsible, LLM insight panel                                                                                                                                                                                                                                                                           |
+| **M4 — Bubble Chart** | ✅ Done | D3.js force simulation, warna + ukuran bubble per timeframe, label 2-baris scaling, sparkline dalam bubble, filter timeframe (disable graceful), filter provinsi, search komoditas, tooltip hover, dark/light mode, refresh manual, loading skeleton, error state, DataFooter, 62 tests                                                  |
+| **M5 — Modal Detail** | ✅ Done | Modal detail per komoditas: Chart_Historis (D3.js line chart + HighLowMarker), Tabel_Geografis collapsible 4 level (sortable), Insight_Panel LLM (auto-fetch, cache-aware, timeout 35s), 107 tests (property + unit)                                                                                                                     |
 | **M6 — Polish**       | Pending | Search, filter provinsi, dark/light mode, loading states, error states                                                                                                                                                                                                                                                                   |
 | **M7 — Deploy**       | Pending | Railway (API + DB) + Vercel (Web), cron aktif, monitoring log                                                                                                                                                                                                                                                                            |
 

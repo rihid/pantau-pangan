@@ -49,6 +49,7 @@
   },
   "dependencies": {
     "@pantau-pangan/shared": "workspace:*",
+    "@radix-ui/react-dialog": "^1.1.17",
     "dotenv": "^17.4.2",
     "drizzle-orm": "^0.45.2",
     "postgres": "^3.4.9"
