@@ -1,3 +1,5 @@
+'use client'
+
 import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import React from 'react'
@@ -14,15 +16,18 @@ function SafeChild() {
 }
 
 describe('ErrorBoundary', () => {
-  // Suppress console.error noise from React's error boundary logging in tests
-  let consoleErrorSpy: ReturnType<typeof vi.spyOn<Console, 'error'>>
+  // Capture console.error calls without relying on .mock.calls
+  const capturedErrors: Array<{ error: unknown; stack: unknown }> = []
 
   beforeEach(() => {
-    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    capturedErrors.length = 0
+    vi.spyOn(console, 'error').mockImplementation((err: unknown, stack: unknown) => {
+      capturedErrors.push({ error: err, stack })
+    })
   })
 
   afterEach(() => {
-    consoleErrorSpy.mockRestore()
+    vi.restoreAllMocks()
   })
 
   test('renders children when no error occurs', () => {
@@ -69,14 +74,13 @@ describe('ErrorBoundary', () => {
       </ErrorBoundary>,
     )
 
-    // console.error is called by React itself and by our componentDidCatch
-    // Verify our componentDidCatch called it with the error object and componentStack
-    const calls: unknown[][] = consoleErrorSpy.mock.calls as unknown[][]
-    const errorCall = calls.find(
-      (call) => call[0] instanceof Error && call[0].message === 'Specific error message',
+    // componentDidCatch calls console.error(error, info.componentStack)
+    // Find the call where the first arg is our specific Error
+    const errorCall = capturedErrors.find(
+      ({ error }) => error instanceof Error && error.message === 'Specific error message',
     )
     expect(errorCall).toBeDefined()
-    // Second argument should be the componentStack string
-    expect(typeof errorCall?.[1]).toBe('string')
+    // Second argument is the componentStack string from React.ErrorInfo
+    expect(typeof errorCall?.stack).toBe('string')
   })
 })
