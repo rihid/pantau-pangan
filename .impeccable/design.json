@@ -1,0 +1,205 @@
+{
+  "schemaVersion": 2,
+  "name": "Pantau Pangan",
+  "description": "Visualisasi harga pangan strategis nasional — bubble chart interaktif real-time",
+  "narrative": {
+    "northStar": "The Public Pulse Board",
+    "register": "product",
+    "strategy": "Restrained — tinted neutrals + Padi Green accent ≤10%. Signal colors are data vocabulary, not brand palette.",
+    "elevationStyle": "Layered: tonal surfaces for depth, ambient glow for the logo, heavy float shadow for tooltips and modals.",
+    "componentFeel": "Approachable & clear. Geist Sans throughout. Pill shapes only for filters; gentle curves elsewhere."
+  },
+  "extensions": {
+    "colorMeta": {
+      "night-canvas": {
+        "value": "oklch(0.145 0 0)",
+        "role": "page background (dark)",
+        "ramp": [
+          "oklch(0.02 0 0)",
+          "oklch(0.06 0 0)",
+          "oklch(0.10 0 0)",
+          "oklch(0.145 0 0)",
+          "oklch(0.205 0 0)",
+          "oklch(0.269 0 0)",
+          "oklch(0.35 0 0)",
+          "oklch(0.45 0 0)"
+        ]
+      },
+      "rice-white": {
+        "value": "oklch(0.985 0 0)",
+        "role": "primary foreground (dark) / page background (light)",
+        "ramp": [
+          "oklch(0.70 0 0)",
+          "oklch(0.78 0 0)",
+          "oklch(0.86 0 0)",
+          "oklch(0.922 0 0)",
+          "oklch(0.955 0 0)",
+          "oklch(0.970 0 0)",
+          "oklch(0.980 0 0)",
+          "oklch(0.985 0 0)"
+        ]
+      },
+      "padi-green": {
+        "value": "oklch(0.72 0.15 145)",
+        "role": "brand accent — logo, glow, primary active state",
+        "ramp": [
+          "oklch(0.30 0.12 145)",
+          "oklch(0.40 0.13 145)",
+          "oklch(0.50 0.14 145)",
+          "oklch(0.58 0.15 145)",
+          "oklch(0.65 0.15 145)",
+          "oklch(0.72 0.15 145)",
+          "oklch(0.80 0.10 145)",
+          "oklch(0.88 0.06 145)"
+        ]
+      },
+      "signal-red": {
+        "value": "oklch(0.63 0.22 27)",
+        "role": "data signal: price increase significant",
+        "ramp": [
+          "oklch(0.30 0.18 27)",
+          "oklch(0.40 0.20 27)",
+          "oklch(0.50 0.21 27)",
+          "oklch(0.57 0.22 27)",
+          "oklch(0.63 0.22 27)",
+          "oklch(0.70 0.19 27)",
+          "oklch(0.77 0.15 27)",
+          "oklch(0.84 0.10 27)"
+        ]
+      },
+      "signal-orange": {
+        "value": "oklch(0.70 0.19 50)",
+        "role": "data signal: price increase moderate",
+        "ramp": [
+          "oklch(0.35 0.15 50)",
+          "oklch(0.44 0.17 50)",
+          "oklch(0.53 0.18 50)",
+          "oklch(0.61 0.19 50)",
+          "oklch(0.70 0.19 50)",
+          "oklch(0.77 0.16 50)",
+          "oklch(0.83 0.12 50)",
+          "oklch(0.90 0.07 50)"
+        ]
+      },
+      "signal-green-strong": {
+        "value": "oklch(0.63 0.19 145)",
+        "role": "data signal: price decrease significant",
+        "ramp": [
+          "oklch(0.28 0.15 145)",
+          "oklch(0.38 0.17 145)",
+          "oklch(0.48 0.18 145)",
+          "oklch(0.55 0.19 145)",
+          "oklch(0.63 0.19 145)",
+          "oklch(0.70 0.17 145)",
+          "oklch(0.78 0.13 145)",
+          "oklch(0.86 0.08 145)"
+        ]
+      },
+      "signal-lime": {
+        "value": "oklch(0.72 0.18 127)",
+        "role": "data signal: price decrease moderate",
+        "ramp": [
+          "oklch(0.30 0.14 127)",
+          "oklch(0.40 0.16 127)",
+          "oklch(0.52 0.17 127)",
+          "oklch(0.61 0.18 127)",
+          "oklch(0.72 0.18 127)",
+          "oklch(0.79 0.15 127)",
+          "oklch(0.86 0.11 127)",
+          "oklch(0.92 0.06 127)"
+        ]
+      }
+    },
+    "shadows": {
+      "none": "none",
+      "float": "0 4px 30px oklch(0 0 0 / 0.5)",
+      "modal": "0 20px 60px oklch(0 0 0 / 0.5), 0 0 0 1px oklch(1 0 0 / 0.10)",
+      "brand-glow": "0 0 15px oklch(0.70 0.17 145 / 0.5)",
+      "brand-glow-strong": "0 0 24px oklch(0.72 0.15 145 / 0.6)",
+      "card": "none",
+      "backdrop-blur": "blur(12px)"
+    },
+    "motion": {
+      "duration": {
+        "instant": "0ms",
+        "fast": "100ms",
+        "default": "150ms",
+        "enter": "200ms",
+        "exit": "120ms",
+        "expand": "200ms"
+      },
+      "easing": {
+        "default": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "out": "cubic-bezier(0.0, 0, 0.2, 1)",
+        "in-out": "cubic-bezier(0.4, 0, 0.2, 1)",
+        "spring": "cubic-bezier(0.34, 1.56, 0.64, 1)"
+      },
+      "reducedMotionFallback": "instant transition (0ms) on all animated properties"
+    },
+    "breakpoints": {
+      "sm": "640px",
+      "md": "768px",
+      "lg": "1024px",
+      "xl": "1280px",
+      "2xl": "1536px"
+    }
+  },
+  "components": [
+    {
+      "name": "Button — Primary",
+      "group": "Actions",
+      "description": "Primary action button. Used for the most important action on a surface.",
+      "html": "<button class=\"ds-btn ds-btn--primary\" type=\"button\">Lihat Detail</button>",
+      "css": ".ds-btn {\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  gap: 6px;\n  font-family: var(--font-geist-sans, -apple-system, sans-serif);\n  font-size: 0.875rem;\n  font-weight: 500;\n  line-height: 1;\n  border-radius: 10px;\n  border: 1px solid transparent;\n  padding: 0 10px;\n  height: 32px;\n  cursor: pointer;\n  white-space: nowrap;\n  transition: background-color 150ms cubic-bezier(0.16, 1, 0.3, 1),\n              color 150ms cubic-bezier(0.16, 1, 0.3, 1),\n              opacity 150ms cubic-bezier(0.16, 1, 0.3, 1);\n  outline: none;\n}\n.ds-btn:focus-visible {\n  box-shadow: 0 0 0 3px oklch(0.72 0.15 145 / 0.5);\n}\n.ds-btn:disabled {\n  opacity: 0.5;\n  pointer-events: none;\n}\n.ds-btn--primary {\n  background-color: oklch(0.985 0 0);\n  color: oklch(0.205 0 0);\n}\n.ds-btn--primary:hover {\n  background-color: oklch(0.955 0 0);\n}\n.ds-btn--primary:active {\n  background-color: oklch(0.922 0 0);\n}"
+    },
+    {
+      "name": "Button — Outline",
+      "group": "Actions",
+      "description": "Secondary action button. Used for secondary or cancel actions.",
+      "html": "<button class=\"ds-btn ds-btn--outline\" type=\"button\">Batal</button>",
+      "css": ".ds-btn--outline {\n  background-color: transparent;\n  color: oklch(0.985 0 0);\n  border-color: oklch(0.985 0 0 / 0.2);\n}\n.ds-btn--outline:hover {\n  background-color: oklch(0.985 0 0 / 0.08);\n  border-color: oklch(0.985 0 0 / 0.4);\n}"
+    },
+    {
+      "name": "Timeframe Filter Pills",
+      "group": "Filters",
+      "description": "Pill group for selecting chart timeframe. Container is a glass capsule with backdrop blur.",
+      "html": "<div class=\"ds-filter-pills\">\n  <button class=\"ds-filter-pill\" type=\"button\">1H</button>\n  <button class=\"ds-filter-pill ds-filter-pill--active\" type=\"button\">1M</button>\n  <button class=\"ds-filter-pill\" type=\"button\">3M</button>\n  <button class=\"ds-filter-pill\" type=\"button\">1T</button>\n  <button class=\"ds-filter-pill ds-filter-pill--disabled\" type=\"button\" disabled>5T</button>\n</div>",
+      "css": ".ds-filter-pills {\n  display: inline-flex;\n  align-items: center;\n  background-color: oklch(0.14 0 0 / 0.8);\n  backdrop-filter: blur(12px);\n  -webkit-backdrop-filter: blur(12px);\n  border-radius: 9999px;\n  border: 1px solid oklch(1 0 0 / 0.10);\n  padding: 3px;\n  gap: 2px;\n}\n.ds-filter-pill {\n  font-family: var(--font-geist-sans, -apple-system, sans-serif);\n  font-size: 0.75rem;\n  font-weight: 500;\n  height: 26px;\n  padding: 0 12px;\n  border-radius: 9999px;\n  border: none;\n  background: transparent;\n  color: oklch(0.708 0 0);\n  cursor: pointer;\n  transition: background-color 150ms, color 150ms;\n  outline: none;\n}\n.ds-filter-pill:hover {\n  color: oklch(0.985 0 0);\n  background-color: oklch(0.985 0 0 / 0.06);\n}\n.ds-filter-pill--active {\n  background-color: oklch(0.205 0 0);\n  color: oklch(0.985 0 0);\n}\n.ds-filter-pill--active:hover {\n  background-color: oklch(0.230 0 0);\n}\n.ds-filter-pill--disabled,\n.ds-filter-pill:disabled {\n  opacity: 0.4;\n  cursor: not-allowed;\n  pointer-events: none;\n}\n.ds-filter-pill:focus-visible {\n  box-shadow: 0 0 0 2px oklch(0.72 0.15 145 / 0.6);\n}"
+    },
+    {
+      "name": "Search Input",
+      "group": "Filters",
+      "description": "Pill-shaped search input with expand animation on focus. Backdrop blur glass treatment.",
+      "html": "<div class=\"ds-search\">\n  <svg class=\"ds-search__icon\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"11\" cy=\"11\" r=\"8\"/><path d=\"m21 21-4.35-4.35\"/></svg>\n  <input class=\"ds-search__input\" type=\"text\" placeholder=\"Cari komoditas...\" />\n  <button class=\"ds-search__clear\" type=\"button\" aria-label=\"Hapus pencarian\" style=\"display: none;\">\n    <svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\"><line x1=\"18\" y1=\"6\" x2=\"6\" y2=\"18\"/><line x1=\"6\" y1=\"6\" x2=\"18\" y2=\"18\"/></svg>\n  </button>\n</div>",
+      "css": ".ds-search {\n  display: inline-flex;\n  align-items: center;\n  gap: 6px;\n  background-color: oklch(0.14 0 0 / 0.8);\n  backdrop-filter: blur(12px);\n  -webkit-backdrop-filter: blur(12px);\n  border-radius: 9999px;\n  border: 1px solid oklch(1 0 0 / 0.10);\n  padding: 0 12px;\n  height: 32px;\n  width: 144px;\n  transition: width 200ms cubic-bezier(0.16, 1, 0.3, 1),\n              border-color 150ms;\n}\n.ds-search:focus-within {\n  width: 192px;\n  border-color: oklch(1 0 0 / 0.2);\n}\n.ds-search__icon {\n  color: oklch(0.556 0 0);\n  flex-shrink: 0;\n}\n.ds-search__input {\n  flex: 1;\n  background: transparent;\n  border: none;\n  outline: none;\n  font-family: var(--font-geist-sans, -apple-system, sans-serif);\n  font-size: 0.875rem;\n  color: oklch(0.985 0 0);\n  min-width: 0;\n}\n.ds-search__input::placeholder {\n  color: oklch(0.556 0 0);\n}\n.ds-search__clear {\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  background: transparent;\n  border: none;\n  cursor: pointer;\n  color: oklch(0.556 0 0);\n  padding: 2px;\n  border-radius: 50%;\n  transition: color 100ms;\n}\n.ds-search__clear:hover {\n  color: oklch(0.985 0 0);\n}"
+    },
+    {
+      "name": "Bubble Tooltip",
+      "group": "Data Display",
+      "description": "Hover tooltip for a price bubble. Shows commodity name, price, change %, and optional sparkline. Glass treatment with heavy float shadow.",
+      "html": "<div class=\"ds-tooltip\" role=\"tooltip\">\n  <div class=\"ds-tooltip__header\">\n    <span class=\"ds-tooltip__name\">Bawang Merah</span>\n    <span class=\"ds-tooltip__badge ds-tooltip__badge--up\">↑ 4.2%</span>\n  </div>\n  <div class=\"ds-tooltip__price\">Rp&nbsp;<span class=\"ds-tooltip__price-value\">38.500</span><span class=\"ds-tooltip__unit\">/kg</span></div>\n  <div class=\"ds-tooltip__timeframe\">vs 1 bulan lalu</div>\n  <svg class=\"ds-tooltip__sparkline\" viewBox=\"0 0 120 32\" width=\"120\" height=\"32\" aria-hidden=\"true\">\n    <polyline points=\"0,28 20,22 40,25 60,18 80,14 100,10 120,8\"\n      fill=\"none\" stroke=\"#9ca3af\" stroke-width=\"1.5\"\n      stroke-linecap=\"round\" stroke-linejoin=\"round\"/>\n  </svg>\n</div>",
+      "css": ".ds-tooltip {\n  position: absolute;\n  pointer-events: none;\n  background-color: oklch(0.205 0 0);\n  backdrop-filter: blur(12px);\n  -webkit-backdrop-filter: blur(12px);\n  border-radius: 16px;\n  border: 1px solid oklch(1 0 0 / 0.08);\n  box-shadow: 0 4px 30px oklch(0 0 0 / 0.5);\n  padding: 14px 16px;\n  min-width: 160px;\n  max-width: 200px;\n}\n.ds-tooltip__header {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  gap: 8px;\n  margin-bottom: 6px;\n}\n.ds-tooltip__name {\n  font-family: var(--font-geist-sans, -apple-system, sans-serif);\n  font-size: 0.8125rem;\n  font-weight: 600;\n  color: oklch(0.985 0 0);\n}\n.ds-tooltip__badge {\n  font-family: var(--font-geist-mono, monospace);\n  font-size: 0.75rem;\n  font-weight: 700;\n}\n.ds-tooltip__badge--up {\n  color: oklch(0.63 0.22 27);\n}\n.ds-tooltip__badge--up-moderate {\n  color: oklch(0.70 0.19 50);\n}\n.ds-tooltip__badge--stable {\n  color: oklch(0.556 0 0);\n}\n.ds-tooltip__badge--down-moderate {\n  color: oklch(0.72 0.18 127);\n}\n.ds-tooltip__badge--down {\n  color: oklch(0.63 0.19 145);\n}\n.ds-tooltip__price {\n  font-family: var(--font-geist-mono, monospace);\n  font-size: 0.875rem;\n  color: oklch(0.922 0 0);\n  margin-bottom: 2px;\n}\n.ds-tooltip__price-value {\n  font-weight: 600;\n}\n.ds-tooltip__unit {\n  color: oklch(0.708 0 0);\n  font-size: 0.75rem;\n}\n.ds-tooltip__timeframe {\n  font-family: var(--font-geist-sans, -apple-system, sans-serif);\n  font-size: 0.6875rem;\n  color: oklch(0.556 0 0);\n  margin-bottom: 10px;\n}\n.ds-tooltip__sparkline {\n  display: block;\n  opacity: 0.7;\n}"
+    },
+    {
+      "name": "Data Footer",
+      "group": "Layout",
+      "description": "Bottom status strip. Shows data freshness and time range. Full-width glass strip.",
+      "html": "<footer class=\"ds-data-footer\">\n  <span class=\"ds-data-footer__item\">\n    <span class=\"ds-data-footer__label\">Data terbaru</span>\n    <span class=\"ds-data-footer__value\">18 Jun 2026</span>\n  </span>\n  <span class=\"ds-data-footer__item\">\n    <span class=\"ds-data-footer__label\">Akumulasi sejak</span>\n    <span class=\"ds-data-footer__value\">14 Jun 2026</span>\n  </span>\n</footer>",
+      "css": ".ds-data-footer {\n  position: fixed;\n  bottom: 0;\n  left: 0;\n  right: 0;\n  z-index: 40;\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  height: 28px;\n  padding: 0 16px;\n  background-color: oklch(0.07 0 0 / 0.85);\n  backdrop-filter: blur(4px);\n  -webkit-backdrop-filter: blur(4px);\n  border-top: 1px solid oklch(1 0 0 / 0.05);\n}\n.ds-data-footer__item {\n  display: flex;\n  align-items: center;\n  gap: 6px;\n}\n.ds-data-footer__label {\n  font-family: var(--font-geist-sans, -apple-system, sans-serif);\n  font-size: 0.6875rem;\n  color: oklch(0.439 0 0);\n}\n.ds-data-footer__value {\n  font-family: var(--font-geist-mono, monospace);\n  font-size: 0.6875rem;\n  font-weight: 500;\n  color: oklch(0.708 0 0);\n}"
+    },
+    {
+      "name": "Bubble Chart Skeleton",
+      "group": "Loading States",
+      "description": "Loading placeholder for the bubble chart. 21 SVG circles with pulse animation.",
+      "html": "<div class=\"ds-bubble-skeleton\" aria-label=\"Memuat data harga...\" aria-busy=\"true\">\n  <svg viewBox=\"0 0 800 600\" preserveAspectRatio=\"xMidYMid meet\" class=\"ds-bubble-skeleton__svg\">\n    <circle cx=\"120\" cy=\"200\" r=\"60\" class=\"ds-bubble-skeleton__circle\"/>\n    <circle cx=\"260\" cy=\"160\" r=\"80\" class=\"ds-bubble-skeleton__circle\"/>\n    <circle cx=\"400\" cy=\"220\" r=\"50\" class=\"ds-bubble-skeleton__circle\"/>\n    <circle cx=\"530\" cy=\"180\" r=\"70\" class=\"ds-bubble-skeleton__circle\"/>\n    <circle cx=\"670\" cy=\"200\" r=\"55\" class=\"ds-bubble-skeleton__circle\"/>\n    <circle cx=\"150\" cy=\"380\" r=\"45\" class=\"ds-bubble-skeleton__circle\"/>\n    <circle cx=\"290\" cy=\"360\" r=\"65\" class=\"ds-bubble-skeleton__circle\"/>\n    <circle cx=\"430\" cy=\"400\" r=\"75\" class=\"ds-bubble-skeleton__circle\"/>\n    <circle cx=\"580\" cy=\"370\" r=\"48\" class=\"ds-bubble-skeleton__circle\"/>\n    <circle cx=\"700\" cy=\"390\" r=\"60\" class=\"ds-bubble-skeleton__circle\"/>\n    <circle cx=\"80\" cy=\"510\" r=\"40\" class=\"ds-bubble-skeleton__circle\"/>\n    <circle cx=\"220\" cy=\"500\" r=\"55\" class=\"ds-bubble-skeleton__circle\"/>\n    <circle cx=\"350\" cy=\"520\" r=\"45\" class=\"ds-bubble-skeleton__circle\"/>\n    <circle cx=\"470\" cy=\"505\" r=\"65\" class=\"ds-bubble-skeleton__circle\"/>\n    <circle cx=\"610\" cy=\"515\" r=\"50\" class=\"ds-bubble-skeleton__circle\"/>\n    <circle cx=\"740\" cy=\"500\" r=\"42\" class=\"ds-bubble-skeleton__circle\"/>\n    <circle cx=\"190\" cy=\"280\" r=\"35\" class=\"ds-bubble-skeleton__circle\"/>\n    <circle cx=\"490\" cy=\"300\" r=\"38\" class=\"ds-bubble-skeleton__circle\"/>\n    <circle cx=\"640\" cy=\"310\" r=\"44\" class=\"ds-bubble-skeleton__circle\"/>\n    <circle cx=\"330\" cy=\"80\" r=\"50\" class=\"ds-bubble-skeleton__circle\"/>\n    <circle cx=\"550\" cy=\"70\" r=\"40\" class=\"ds-bubble-skeleton__circle\"/>\n  </svg>\n</div>",
+      "css": ".ds-bubble-skeleton {\n  position: absolute;\n  inset: 0;\n  overflow: hidden;\n}\n.ds-bubble-skeleton__svg {\n  width: 100%;\n  height: 100%;\n}\n.ds-bubble-skeleton__circle {\n  fill: oklch(0.269 0 0);\n  animation: ds-pulse 1.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;\n}\n.ds-bubble-skeleton__circle:nth-child(2n) {\n  animation-delay: 0.15s;\n}\n.ds-bubble-skeleton__circle:nth-child(3n) {\n  animation-delay: 0.30s;\n}\n@keyframes ds-pulse {\n  0%, 100% { opacity: 1; }\n  50% { opacity: 0.45; }\n}\n@media (prefers-reduced-motion: reduce) {\n  .ds-bubble-skeleton__circle {\n    animation: none;\n    opacity: 0.6;\n  }\n}"
+    },
+    {
+      "name": "Brand Logo Mark",
+      "group": "Brand",
+      "description": "The 'P' logo mark with Padi Green glow. The only element where decorative shadow is allowed.",
+      "html": "<div class=\"ds-logo\">\n  <div class=\"ds-logo__mark\" aria-hidden=\"true\">P</div>\n  <span class=\"ds-logo__wordmark\">PANTAU PANGAN</span>\n</div>",
+      "css": ".ds-logo {\n  display: flex;\n  align-items: center;\n  gap: 8px;\n  text-decoration: none;\n}\n.ds-logo__mark {\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  width: 28px;\n  height: 28px;\n  border-radius: 8px;\n  background: linear-gradient(135deg, oklch(0.72 0.15 145) 0%, oklch(0.58 0.15 145) 100%);\n  box-shadow: 0 0 15px oklch(0.70 0.17 145 / 0.5);\n  font-family: var(--font-geist-sans, -apple-system, sans-serif);\n  font-size: 1rem;\n  font-weight: 700;\n  color: oklch(0.985 0 0);\n  letter-spacing: -0.02em;\n}\n.ds-logo__wordmark {\n  font-family: var(--font-geist-sans, -apple-system, sans-serif);\n  font-size: 0.75rem;\n  font-weight: 600;\n  letter-spacing: 0.08em;\n  color: oklch(0.985 0 0);\n}"
+    }
+  ]
+}
