@@ -56,7 +56,7 @@ export default function HomePage() {
       {/* Skip link — first focusable element for keyboard/screen reader users */}
       <a
         href="#main-content"
-        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:bg-background focus:text-foreground focus:rounded-md focus:shadow-lg"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:bg-background focus:text-foreground focus:rounded-md focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-padi-green/70"
       >
         Lewati ke konten utama
       </a>
@@ -70,8 +70,17 @@ export default function HomePage() {
         <header className="absolute top-0 inset-x-0 z-10 flex items-center justify-between p-3 pointer-events-none">
           {/* Logo + title */}
           <div className="flex items-center gap-2 pointer-events-auto">
-            <div className="w-8 h-8 rounded-full bg-linear-to-br from-green-400 to-green-600 flex items-center justify-center text-black font-bold text-lg shadow-[0_0_15px_rgba(34,197,94,0.5)]">
+            <div className="relative w-8 h-8 rounded-full bg-linear-to-br from-padi-green to-padi-green-deep flex items-center justify-center text-black font-bold text-lg shadow-[0_0_15px_var(--padi-green-glow)]">
               P
+              {!isLoading && !isError && (
+                <span
+                  className="absolute -bottom-0.5 -right-0.5 flex h-2.5 w-2.5"
+                  aria-hidden="true"
+                >
+                  <span className="absolute inline-flex h-full w-full rounded-full bg-padi-green opacity-75 animate-ping motion-reduce:animate-none" />
+                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-padi-green border-2 border-background" />
+                </span>
+              )}
             </div>
             <h1 className="text-lg font-bold tracking-tight text-foreground hidden sm:block">
               PANTAU PANGAN
@@ -101,7 +110,7 @@ export default function HomePage() {
               disabled={isRefetching}
               aria-label="Refresh data"
               title="Refresh data"
-              className="flex items-center justify-center w-8 h-8 rounded-full bg-background/80 backdrop-blur-md border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-40"
+              className="flex items-center justify-center w-8 h-8 rounded-full bg-background/80 backdrop-blur-md border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-padi-green/60"
             >
               <svg
                 className={`w-4 h-4 ${isRefetching ? 'animate-spin' : ''}`}
