@@ -153,4 +153,21 @@
       oklch(0 0 0)
     );
   }
+
+  /* Subtle radial focus behind the bubble cluster — keeps the "pulse board"
+     center weighted without heavy rings (Image #6) or glow (kept clean per Image #8). */
+  .bg-cluster-focus {
+    background-image: radial-gradient(
+      ellipse 70% 70% at 50% 45%,
+      color-mix(in oklch, var(--foreground) 4%, transparent),
+      transparent 70%
+    );
+  }
+  .dark .bg-cluster-focus {
+    background-image: radial-gradient(
+      ellipse 70% 70% at 50% 45%,
+      oklch(0.22 0.02 145 / 0.35),
+      transparent 70%
+    );
+  }
 }
