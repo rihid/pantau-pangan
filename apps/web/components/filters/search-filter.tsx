@@ -7,10 +7,9 @@ interface SearchFilterProps {
 
 export function SearchFilter({ value, onChange }: SearchFilterProps) {
   return (
-    <div className="relative flex items-center">
-      {/* Search icon */}
+    <div className="relative flex items-center w-full max-w-sm">
       <svg
-        className="absolute left-2.5 w-3.5 h-3.5 text-zinc-400 pointer-events-none"
+        className="absolute left-3 w-4 h-4 text-muted-foreground pointer-events-none"
         xmlns="http://www.w3.org/2000/svg"
         fill="none"
         viewBox="0 0 24 24"
@@ -27,15 +26,15 @@ export function SearchFilter({ value, onChange }: SearchFilterProps) {
         onChange={(e) => onChange(e.target.value)}
         placeholder="Cari komoditas..."
         aria-label="Cari komoditas"
-        className="pl-8 pr-3 py-1.5 text-xs bg-zinc-900/80 backdrop-blur-md border border-white/10 rounded-full text-zinc-200 placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-white/20 w-36 focus:w-48 transition-all duration-200"
+        className="pl-9 pr-8 py-1.5 text-xs bg-background/80 backdrop-blur-md border border-border rounded-md text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-padi-green/50 w-full transition-all duration-200"
       />
       {value && (
         <button
           onClick={() => onChange('')}
           aria-label="Hapus pencarian"
-          className="absolute right-2.5 text-zinc-400 hover:text-zinc-200 transition-colors"
+          className="absolute right-2.5 text-muted-foreground hover:text-foreground transition-colors"
         >
-          <svg className="w-3 h-3" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true">
+          <svg className="w-3.5 h-3.5" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true">
             <path
               d="M9 3L6 6M6 6L3 9M6 6L9 9M6 6L3 3"
               stroke="currentColor"

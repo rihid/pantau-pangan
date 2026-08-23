@@ -30,13 +30,12 @@ export function TimeframeFilter({
   availableDays,
 }: TimeframeFilterProps) {
   return (
-    <div className="flex bg-zinc-900/80 backdrop-blur-md p-1 rounded-full border border-white/10 gap-1">
+    <div className="flex bg-card/90 backdrop-blur-md p-1 rounded-full border border-border gap-1 shadow-lg">
       {TIMEFRAMES.map((tf) => {
         const isActive = value === tf
         const isDisabled = disabledTimeframes?.has(tf) ?? false
         const needed = TIMEFRAME_DAYS[tf]
 
-        // Tooltip: tampilkan hanya jika disabled dan kita tahu berapa hari tersedia
         const title =
           isDisabled && availableDays !== undefined
             ? `Data tersedia ${availableDays} hari — butuh minimal ${needed} hari untuk ${TIMEFRAME_LABEL[tf]}`
@@ -52,8 +51,8 @@ export function TimeframeFilter({
             }}
             className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${
               isActive
-                ? 'bg-zinc-800 text-white shadow-sm'
-                : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
+                ? 'bg-foreground text-background shadow-sm'
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted'
             } ${isDisabled ? 'opacity-40 cursor-not-allowed' : ''}`}
           >
             {tf}

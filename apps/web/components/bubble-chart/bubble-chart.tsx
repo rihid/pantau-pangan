@@ -257,7 +257,7 @@ export function BubbleChart({
                   data-id={d.komoditasId}
                   r={d.radius + 3}
                   fill="none"
-                  stroke="white"
+                  stroke="var(--bubble-label)"
                   strokeWidth={2}
                   strokeOpacity={0.6}
                   style={{ pointerEvents: 'none' }}
@@ -274,7 +274,7 @@ export function BubbleChart({
                     dominantBaseline="middle"
                     fontSize={nameFontSize}
                     fontWeight="500"
-                    fill="white"
+                    fill="var(--bubble-label)"
                     style={{ pointerEvents: 'none', userSelect: 'none' }}
                   >
                     {nameLine1}
@@ -288,7 +288,7 @@ export function BubbleChart({
                       dominantBaseline="middle"
                       fontSize={nameFontSize}
                       fontWeight="500"
-                      fill="white"
+                      fill="var(--bubble-label)"
                       style={{ pointerEvents: 'none', userSelect: 'none' }}
                     >
                       {nameLine2}
@@ -302,7 +302,8 @@ export function BubbleChart({
                     dominantBaseline="middle"
                     fontSize={pctFontSize}
                     fontWeight="400"
-                    fill="rgba(255,255,255,0.9)"
+                    fill="var(--bubble-label)"
+                    opacity={0.9}
                     style={{ pointerEvents: 'none', userSelect: 'none' }}
                   >
                     {pct}
@@ -314,7 +315,8 @@ export function BubbleChart({
                       data-sparkline-id={d.komoditasId}
                       points={sparklinePoints}
                       fill="none"
-                      stroke="rgba(255,255,255,0.6)"
+                      stroke="var(--bubble-label)"
+                      strokeOpacity={0.6}
                       strokeWidth={1.5}
                       strokeLinejoin="round"
                       strokeLinecap="round"
