@@ -78,7 +78,7 @@ export function HistorisChart({
         .append('path')
         .attr('class', 'line-path')
         .attr('fill', 'none')
-        .attr('stroke', '#3b82f6')
+        .attr('stroke', 'var(--foreground)')
         .attr('stroke-width', 2)
       rootG.append('g').attr('class', 'high-low-markers')
     }
@@ -110,15 +110,15 @@ export function HistorisChart({
 
     // Update sumbu X
     const xAxis = d3.axisBottom(xScale).tickFormat((d) => d3.timeFormat('%d/%m')(d as Date))
-    rootG
-      .select<SVGGElement>('g.x-axis')
-      .attr('transform', `translate(0,${innerH})`)
-      .transition(transition)
-      .call(xAxis)
+    const xAxisG = rootG.select<SVGGElement>('g.x-axis')
+    xAxisG.attr('transform', `translate(0,${innerH})`).transition(transition).call(xAxis)
+    xAxisG.selectAll('text').attr('font-family', 'var(--font-mono)')
 
     // Update sumbu Y
+    const yAxisG = rootG.select<SVGGElement>('g.y-axis')
     const yAxis = d3.axisLeft(yScale).tickFormat((d) => formatRibuan(d as number))
-    rootG.select<SVGGElement>('g.y-axis').transition(transition).call(yAxis)
+    yAxisG.transition(transition).call(yAxis)
+    yAxisG.selectAll('text').attr('font-family', 'var(--font-mono)')
 
     // Update garis chart
     const lineGen = d3
@@ -140,8 +140,16 @@ export function HistorisChart({
     const highLow = computeHighLow(filteredData)
     if (highLow && filteredData.length > 1) {
       const markers = [
-        { item: highLow.max, color: '#ef4444', label: `Rp ${formatRibuan(highLow.max.harga)}` },
-        { item: highLow.min, color: '#22c55e', label: `Rp ${formatRibuan(highLow.min.harga)}` },
+        {
+          item: highLow.max,
+          color: 'var(--signal-up-strong)',
+          label: `Rp ${formatRibuan(highLow.max.harga)}`,
+        },
+        {
+          item: highLow.min,
+          color: 'var(--signal-down-strong)',
+          label: `Rp ${formatRibuan(highLow.min.harga)}`,
+        },
       ]
 
       for (const marker of markers) {
@@ -168,6 +176,7 @@ export function HistorisChart({
           .attr('x', labelX)
           .attr('y', cy + 4)
           .attr('text-anchor', textAnchor)
+          .attr('font-family', 'var(--font-mono)')
           .attr('font-size', 11)
           .attr('fill', marker.color)
           .text(marker.label)
