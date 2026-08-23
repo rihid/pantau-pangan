@@ -20,3 +20,14 @@ coverage/
 # IDE / editor — keep local, jangan share kecuali jelas team-wide
 .vscode/
 .idea/
+
+# Tooling AI agents — artefak sesi, jangan commit
+.omo/
+.playwright-mcp/
+
+# Artefak desain/screenshot scratch di root
+design-contract.txt
+karpathy-jobs.png
+modal-insight-tab.png
+navbar-logo-dark.png
+verdict-*.png
