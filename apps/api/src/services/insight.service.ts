@@ -5,7 +5,11 @@ import { komoditas, provinsi, hargaHarian, insightCache } from '../db/schema'
 import { eq, and, desc, isNull } from 'drizzle-orm'
 import { ApiError } from '../lib/validators'
 
+const GENERALCOMPUTE_URL = 'https://api.generalcompute.com/v1/chat/completions'
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions'
+
+const GENERALCOMPUTE_MODEL = Bun.env.GENERALCOMPUTE_MODEL ?? 'minimax-m2.7'
+const OPENROUTER_MODEL = Bun.env.OPENROUTER_MODEL ?? 'nvidia/nemotron-3-ultra-550b-a55b:free'
 
 /** Get today's date in WIB (UTC+7) as YYYY-MM-DD string */
 function getTodayWIB(): string {
@@ -18,9 +22,10 @@ export async function getInsight(
   komoditasId: number,
   provinsiId: number,
 ): Promise<InsightResponse> {
-  const apiKey = Bun.env.OPENROUTER_API_KEY
-  if (!apiKey) {
-    throw new ApiError(503, 'Fitur insight belum dikonfigurasi (OPENROUTER_API_KEY tidak tersedia)')
+  const generalComputeKey = Bun.env.GENERALCOMPUTE_API_KEY
+  const openRouterKey = Bun.env.OPENROUTER_API_KEY
+  if (!generalComputeKey && !openRouterKey) {
+    throw new ApiError(503, 'Fitur insight belum dikonfigurasi (API key LLM tidak tersedia)')
   }
 
   // Verify komoditas exists
@@ -59,54 +64,107 @@ export async function getInsight(
   // 2. Build prompt context dari DB
   const prompt = await buildInsightPrompt(komoditasId, provinsiId, kom[0]!)
 
-  // 3. Call OpenRouter
+  // 3. Call LLM — General Compute utama, OpenRouter fallback
+  const primary: LlmProvider = {
+    name: 'General Compute',
+    url: GENERALCOMPUTE_URL,
+    apiKey: generalComputeKey,
+    model: GENERALCOMPUTE_MODEL,
+  }
+  const fallback: LlmProvider = {
+    name: 'OpenRouter',
+    url: OPENROUTER_URL,
+    apiKey: openRouterKey,
+    model: OPENROUTER_MODEL,
+  }
+
+  let insight: string
+  try {
+    insight = await callLlmProvider(primary, prompt)
+  } catch (primaryErr) {
+    console.error(`General Compute gagal, fallback OpenRouter: ${(primaryErr as Error).message}`)
+    try {
+      insight = await callLlmProvider(fallback, prompt)
+    } catch (fallbackErr) {
+      console.error(`OpenRouter gagal: ${(fallbackErr as Error).message}`)
+      throw new ApiError(502, 'Layanan LLM tidak tersedia')
+    }
+  }
+
+  // 4. Simpan ke cache
+  await db.insert(insightCache).values({
+    komoditasId,
+    provinsiId: provinsiId === 0 ? null : provinsiId,
+    cacheDate: todayWIB,
+    insight,
+  })
+
+  return {
+    komoditasId,
+    provinsiId: provinsiId === 0 ? null : provinsiId,
+    insight,
+    generatedAt: new Date().toISOString(),
+    cached: false,
+  }
+}
+
+interface LlmProvider {
+  name: string
+  url: string
+  apiKey: string | undefined
+  model: string
+}
+
+async function callLlmProvider(provider: LlmProvider, prompt: string): Promise<string> {
+  if (!provider.apiKey) throw new Error(`${provider.name}: API key tidak tersedia`)
+
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), 30_000)
 
   try {
-    const res = await fetch(OPENROUTER_URL, {
+    const res = await fetch(provider.url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
+        Authorization: `Bearer ${provider.apiKey}`,
       },
       body: JSON.stringify({
-        model: 'anthropic/claude-3.5-haiku',
+        model: provider.model,
         messages: [{ role: 'user', content: prompt }],
-        max_tokens: 1024,
+        max_tokens: 2048,
       }),
       signal: controller.signal,
     })
-    clearTimeout(timeout)
 
     if (!res.ok) {
-      throw new ApiError(502, 'Layanan LLM (OpenRouter) tidak tersedia')
+      const errorBody = await res.text().catch(() => '')
+      throw new Error(
+        `${provider.name} error (${res.status}) model=${provider.model}: ${errorBody}`,
+      )
     }
 
-    const json = (await res.json()) as {
-      choices: Array<{ message: { content: string } }>
+    const raw = await res.text()
+    let json: {
+      choices?: Array<{
+        message: { content: string | null; reasoning?: string | null }
+      }>
     }
-    const insight = json.choices[0]!.message.content
-
-    // 4. Simpan ke cache
-    await db.insert(insightCache).values({
-      komoditasId,
-      provinsiId: provinsiId === 0 ? null : provinsiId,
-      cacheDate: todayWIB,
-      insight,
-    })
-
-    return {
-      komoditasId,
-      provinsiId: provinsiId === 0 ? null : provinsiId,
-      insight,
-      generatedAt: new Date().toISOString(),
-      cached: false,
+    try {
+      json = raw ? (JSON.parse(raw) as typeof json) : {}
+    } catch {
+      throw new Error(
+        `${provider.name} invalid JSON (${res.status}) model=${provider.model}: ${raw.slice(0, 200)}`,
+      )
     }
-  } catch (err) {
+
+    const message = json.choices?.[0]?.message
+    const content = (message?.content ?? message?.reasoning ?? '').trim()
+    if (!content) {
+      throw new Error(`${provider.name} mengembalikan respons kosong: ${raw.slice(0, 300)}`)
+    }
+    return content
+  } finally {
     clearTimeout(timeout)
-    if (err instanceof ApiError) throw err
-    throw new ApiError(502, 'Layanan LLM (OpenRouter) tidak tersedia atau timeout')
   }
 }
 
