@@ -1,16 +1,10 @@
 'use client'
 
-import type { Timeframe } from '@pantau-pangan/shared'
-import { TimeframeFilter } from '@/components/filters/timeframe-filter'
 import { ProvinsiFilter } from '@/components/filters/provinsi-filter'
 import { SearchFilter } from '@/components/filters/search-filter'
 import { ThemeToggle } from '@/components/theme-toggle'
 
 interface TopBarProps {
-  timeframe: Timeframe
-  onTimeframeChange: (tf: Timeframe) => void
-  disabledTimeframes: Set<Timeframe>
-  availableDays: number
   provinsiId: number
   onProvinsiChange: (id: number) => void
   searchQuery: string
@@ -22,15 +16,10 @@ interface TopBarProps {
 }
 
 /**
- * Top bar dashboard — glass row solid (bukan kontrol mengambang yang tersebar).
- * Logo + judul di kiri, timeframe + search di tengah (md+), provinsi/refresh/theme di kanan.
- * Komposisi mengikuti Image #6 (Orion).
+ * Top bar dashboard — wordmark kiri, omnisearch tengah, kontrol kanan.
+ * Timeframe pindah ke floating dock di atas canvas (pola Verdict).
  */
 export function TopBar({
-  timeframe,
-  onTimeframeChange,
-  disabledTimeframes,
-  availableDays,
   provinsiId,
   onProvinsiChange,
   searchQuery,
@@ -40,11 +29,17 @@ export function TopBar({
   isLive,
 }: TopBarProps) {
   return (
-    <header className="flex items-center justify-between gap-3 h-14 px-3 sm:px-4 border-b border-border bg-background/70 backdrop-blur-md">
-      {/* Logo + title */}
-      <div className="flex items-center gap-2">
-        <div className="relative w-8 h-8 rounded-full bg-linear-to-br from-padi-green to-padi-green-deep flex items-center justify-center text-black font-bold text-lg shadow-[0_0_15px_var(--padi-green-glow)]">
-          P
+    <header className="flex items-center justify-between gap-3 h-12 px-3 sm:px-4 border-b border-border bg-background/70 backdrop-blur-md">
+      {/* Logo + wordmark */}
+      <div className="flex items-center gap-2 shrink-0">
+        <div className="relative w-7 h-7 shrink-0">
+          <img
+            src="/pantau-pangan.png"
+            alt="Logo Pantau Pangan"
+            width={28}
+            height={28}
+            className="w-7 h-7 rounded-full object-cover"
+          />
           {isLive && (
             <span className="absolute -bottom-0.5 -right-0.5 flex h-2.5 w-2.5" aria-hidden="true">
               <span className="absolute inline-flex h-full w-full rounded-full bg-padi-green opacity-75 animate-ping motion-reduce:animate-none" />
@@ -52,31 +47,25 @@ export function TopBar({
             </span>
           )}
         </div>
-        <h1 className="text-lg font-bold tracking-tight text-foreground hidden sm:block">
+        <span className="text-sm font-bold tracking-tight text-foreground hidden sm:block">
           PANTAU PANGAN
-        </h1>
+        </span>
       </div>
 
-      {/* Center: timeframe + search (md+) */}
-      <nav aria-label="Filter dan navigasi" className="hidden md:flex items-center gap-2">
-        <TimeframeFilter
-          value={timeframe}
-          onChange={onTimeframeChange}
-          disabledTimeframes={disabledTimeframes}
-          availableDays={availableDays}
-        />
+      {/* Omnisearch — center, flex-1 max-w-md */}
+      <div className="flex-1 flex justify-center min-w-0 px-2">
         <SearchFilter value={searchQuery} onChange={onSearchChange} />
-      </nav>
+      </div>
 
       {/* Right controls */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 shrink-0">
         <ProvinsiFilter value={provinsiId} onChange={onProvinsiChange} />
         <button
           onClick={onRefresh}
           disabled={isRefetching}
           aria-label="Refresh data"
           title="Refresh data"
-          className="flex items-center justify-center w-8 h-8 rounded-full bg-background/80 backdrop-blur-md border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-padi-green/60"
+          className="flex items-center justify-center w-8 h-8 rounded-md bg-background/80 backdrop-blur-md border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-padi-green/60"
         >
           <svg
             className={`w-4 h-4 ${isRefetching ? 'animate-spin motion-reduce:animate-none' : ''}`}
