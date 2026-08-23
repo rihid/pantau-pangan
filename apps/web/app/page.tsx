@@ -4,8 +4,11 @@ import { useMemo, useState } from 'react'
 import type { BubbleData, Timeframe } from '@pantau-pangan/shared'
 import { useKomoditas } from '@/lib/hooks/use-komoditas'
 import { useDataRange } from '@/lib/hooks/use-data-range'
+import { useProvinsi } from '@/lib/hooks/use-provinsi'
 import { summarizeBubbles } from '@/lib/summary-utils'
 import { TopBar } from '@/components/layout/top-bar'
+import { MarketBar } from '@/components/layout/market-bar'
+import { LegendPanel } from '@/components/sidebar/legend-panel'
 import { RingkasanSidebar } from '@/components/sidebar/ringkasan-sidebar'
 import { TimeframeFilter } from '@/components/filters/timeframe-filter'
 import { SearchFilter } from '@/components/filters/search-filter'
@@ -34,6 +37,8 @@ export default function HomePage() {
 
   const { data, isLoading, isError, isRefetching, refetch } = useKomoditas(timeframe, provinsiId)
   const { disabledTimeframes, availableDays, dataRange } = useDataRange(provinsiId)
+  const { data: provinsiList } = useProvinsi()
+  const provinsiNama = provinsiList?.find((p) => p.id === provinsiId)?.nama ?? 'Semua Provinsi'
 
   const summary = useMemo(() => summarizeBubbles(data ?? []), [data])
 
@@ -64,13 +69,9 @@ export default function HomePage() {
         Lewati ke konten utama
       </a>
 
-      <div className="grid grid-rows-[auto_1fr_auto] h-dvh overflow-hidden bg-page-gradient text-foreground">
+      <div className="grid grid-rows-[auto_auto_1fr_auto] h-dvh overflow-hidden bg-page-gradient text-foreground">
         {/* Top bar */}
         <TopBar
-          timeframe={timeframe}
-          onTimeframeChange={handleTimeframeChange}
-          disabledTimeframes={disabledTimeframes}
-          availableDays={availableDays}
           provinsiId={provinsiId}
           onProvinsiChange={setProvinsiId}
           searchQuery={searchQuery}
@@ -80,9 +81,21 @@ export default function HomePage() {
           isLive={!isLoading && !isError}
         />
 
-        {/* Middle row: sidebar (lg+) + bubble cluster */}
-        <div className="grid lg:grid-cols-[300px_1fr] min-h-0">
-          <RingkasanSidebar summary={summary} isLoading={isLoading} onSelect={handleBubbleClick} />
+        {/* Market status sub-header */}
+        <MarketBar
+          provinsiNama={provinsiNama}
+          isLive={!isLoading && !isError}
+          latestDate={dataRange?.newestDate ?? undefined}
+          earliestDate={dataRange?.oldestDate ?? undefined}
+        />
+
+        {/* Middle row: legend (lg+) + bubble cluster + verdict (lg+) */}
+        <div className="grid lg:grid-cols-[220px_1fr_300px] min-h-0">
+          <LegendPanel
+            timeframe={timeframe}
+            availableDays={availableDays}
+            disabledTimeframes={disabledTimeframes}
+          />
 
           <main
             id="main-content"
@@ -100,14 +113,11 @@ export default function HomePage() {
               onBubbleClick={handleBubbleClick}
             />
 
-            {/* Mobile: floating timeframe dock + search */}
+            {/* Floating dock: timeframe + search (mobile) — satu sumber, semua breakpoint */}
             <nav
-              aria-label="Filter dan navigasi mobile"
-              className="md:hidden absolute bottom-4 inset-x-0 z-10 flex flex-col items-center gap-2 pointer-events-none"
+              aria-label="Filter dan navigasi"
+              className="absolute bottom-4 inset-x-0 z-10 flex flex-col items-center gap-2 pointer-events-none"
             >
-              <div className="pointer-events-auto">
-                <SearchFilter value={searchQuery} onChange={setSearchQuery} />
-              </div>
               <div className="pointer-events-auto">
                 <TimeframeFilter
                   value={timeframe}
@@ -116,15 +126,17 @@ export default function HomePage() {
                   availableDays={availableDays}
                 />
               </div>
+              <div className="pointer-events-auto md:hidden">
+                <SearchFilter value={searchQuery} onChange={setSearchQuery} />
+              </div>
             </nav>
           </main>
+
+          <RingkasanSidebar summary={summary} isLoading={isLoading} onSelect={handleBubbleClick} />
         </div>
 
-        {/* Footer — freshness strip */}
-        <DataFooter
-          latestDate={dataRange?.newestDate ?? undefined}
-          earliestDate={dataRange?.oldestDate ?? undefined}
-        />
+        {/* Footer — source strip */}
+        <DataFooter earliestDate={dataRange?.oldestDate ?? undefined} />
       </div>
 
       {/* Modal detail komoditas */}

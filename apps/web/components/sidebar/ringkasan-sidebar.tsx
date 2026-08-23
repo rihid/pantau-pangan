@@ -6,8 +6,8 @@ import { STABLE_COLOR, type BubbleSummary } from '@/lib/summary-utils'
 /** Warna sinyal untuk segmen "naik" dan "turun" pada bar proporsi.
  *  Sengaja dipakai di sini karena ini DATA volatilitas (bukan dekorasi) —
  *  sesuai Signal Quarantine Rule di DESIGN.md. */
-const NAIK_COLOR = '#f97316'
-const TURUN_COLOR = '#22c55e'
+const NAIK_COLOR = 'var(--signal-up)'
+const TURUN_COLOR = 'var(--signal-down)'
 
 interface RingkasanSidebarProps {
   summary: BubbleSummary
@@ -25,24 +25,46 @@ function formatPersen(perubahan: number): string {
 }
 
 /**
- * Sidebar "Ringkasan harga" — bar proporsi naik/turun/stabil + daftar top movers.
- * Hanya tampil di lg+ (di bawah itu, agregat tetap terbaca lewat bubble di canvas).
- * Komposisi mengikuti sidebar Image #6 (Orion) + ranked list Image #7 (Lepus).
+ * Panel "VERDICT" — ringkasan pasar: headline verdict + bar proporsi + top movers.
+ * Komposisi mengikuti pola right-panel Verdict (VerdictCard + ranked list).
  */
 export function RingkasanSidebar({ summary, isLoading, onSelect }: RingkasanSidebarProps) {
   const { naik, turun, stabil, total, topMovers } = summary
 
+  const verdict =
+    total === 0
+      ? null
+      : naik > turun
+        ? 'Pasar didominasi kenaikan'
+        : naik < turun
+          ? 'Pasar didominasi penurunan'
+          : 'Pasar cenderung stabil'
+
   return (
     <aside
       aria-label="Ringkasan harga pangan"
-      className="hidden lg:flex flex-col gap-5 w-[300px] shrink-0 h-full overflow-y-auto border-r border-border bg-card/40 backdrop-blur-sm px-4 py-5"
+      className="hidden lg:flex flex-col gap-5 w-[300px] shrink-0 h-full overflow-y-auto border-l border-border bg-card/40 px-4 py-5"
     >
+      {/* Verdict headline */}
+      <section>
+        <h2 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+          Verdict
+        </h2>
+        {isLoading || total === 0 ? (
+          <div className="h-6 w-3/4 rounded-md bg-muted animate-pulse motion-reduce:animate-none" />
+        ) : (
+          <p className="text-sm font-semibold text-foreground">
+            {verdict} —{' '}
+            <span className="font-mono">
+              {naik}/{total}
+            </span>{' '}
+            naik
+          </p>
+        )}
+      </section>
+
       {/* Bar proporsi */}
       <section>
-        <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-3">
-          Ringkasan harga
-        </h2>
-
         {isLoading || total === 0 ? (
           <div className="h-2 w-full rounded-full bg-muted animate-pulse motion-reduce:animate-none" />
         ) : (
@@ -50,7 +72,7 @@ export function RingkasanSidebar({ summary, isLoading, onSelect }: RingkasanSide
             <div
               role="img"
               aria-label={`${naik} naik, ${turun} turun, ${stabil} stabil dari ${total} komoditas`}
-              className="flex h-2 w-full overflow-hidden rounded-full bg-muted"
+              className="flex h-1.5 w-full overflow-hidden rounded-full bg-muted"
             >
               <ProportionSegment count={naik} total={total} color={NAIK_COLOR} />
               <ProportionSegment count={turun} total={total} color={TURUN_COLOR} />
@@ -70,8 +92,8 @@ export function RingkasanSidebar({ summary, isLoading, onSelect }: RingkasanSide
 
       {/* Top movers */}
       <section className="flex flex-col min-h-0">
-        <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-3">
-          Top pergerakan
+        <h2 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+          Top Pergerakan
         </h2>
 
         {isLoading ? (
@@ -87,9 +109,10 @@ export function RingkasanSidebar({ summary, isLoading, onSelect }: RingkasanSide
           <p className="text-xs text-muted-foreground">Belum ada data pergerakan.</p>
         ) : (
           <ul className="flex flex-col gap-0.5">
-            {topMovers.map((b) => {
+            {topMovers.map((b, idx) => {
               const isStable = b.color === STABLE_COLOR
               const arrow = isStable ? '•' : b.perubahan > 0 ? '↑' : '↓'
+              const color = isStable ? STABLE_COLOR : b.perubahan > 0 ? NAIK_COLOR : TURUN_COLOR
               return (
                 <li key={b.komoditasId}>
                   <button
@@ -98,8 +121,14 @@ export function RingkasanSidebar({ summary, isLoading, onSelect }: RingkasanSide
                   >
                     <span
                       aria-hidden="true"
+                      className="font-mono text-[10px] w-4 text-center shrink-0 text-muted-foreground"
+                    >
+                      {idx + 1}
+                    </span>
+                    <span
+                      aria-hidden="true"
                       className="font-mono text-sm w-3 text-center shrink-0"
-                      style={{ color: b.color }}
+                      style={{ color }}
                     >
                       {arrow}
                     </span>
@@ -107,7 +136,7 @@ export function RingkasanSidebar({ summary, isLoading, onSelect }: RingkasanSide
                       {b.nama}
                     </span>
                     <span className="flex flex-col items-end shrink-0">
-                      <span className="font-mono text-xs font-semibold" style={{ color: b.color }}>
+                      <span className="font-mono text-xs font-semibold" style={{ color }}>
                         {formatPersen(b.perubahan)}
                       </span>
                       <span className="font-mono text-[11px] text-muted-foreground">
