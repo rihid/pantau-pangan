@@ -164,7 +164,7 @@ export function GeografisTable({ komoditasId, provinsiId }: GeografisTableProps)
                     className={`inline-flex items-center gap-1 hover:text-foreground transition-colors${isActive ? ' text-foreground' : ''}`}
                     aria-label={`Urutkan berdasarkan ${dateKey}${isActive ? (sortState.direction === 'desc' ? ', descending' : ', ascending') : ''}`}
                   >
-                    {dateKey}
+                    <span className="font-mono">{dateKey}</span>
                     {arrow}
                   </button>
                 </th>
@@ -207,7 +207,7 @@ export function GeografisTable({ komoditasId, provinsiId }: GeografisTableProps)
                   return (
                     <td
                       key={dateKey}
-                      className="px-3 py-2 text-right tabular-nums whitespace-nowrap"
+                      className="px-3 py-2 text-right font-mono tabular-nums whitespace-nowrap"
                     >
                       {formatted}
                     </td>

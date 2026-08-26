@@ -11,17 +11,17 @@ interface BubbleTooltipProps {
   provinsiId: number
 }
 
-/** Maps bubble color to Tailwind text color class */
-function getColorClass(color: string): string {
+/** Maps bubble color hex → CSS var signal (theme-aware: dark/light variants) */
+function getColorVar(color: string): string {
   switch (color) {
     case '#ef4444':
     case '#f97316':
-      return 'text-red-500'
+      return 'var(--signal-up)'
     case '#22c55e':
     case '#84cc16':
-      return 'text-green-500'
+      return 'var(--signal-down)'
     default:
-      return 'text-gray-500'
+      return 'var(--signal-stable)'
   }
 }
 
@@ -65,7 +65,7 @@ function Sparkline({ data }: { data: HargaHarian[] }) {
       <polyline
         points={polylinePoints}
         fill="none"
-        stroke="#9ca3af"
+        stroke="var(--signal-stable)"
         strokeWidth="1.5"
         strokeLinejoin="round"
         strokeLinecap="round"
@@ -83,7 +83,7 @@ function TooltipContent({ bubble, provinsiId }: { bubble: BubbleData; provinsiId
   )
 
   const arrow = getArrow(bubble.perubahan, bubble.color)
-  const colorClass = getColorClass(bubble.color)
+  const colorVar = getColorVar(bubble.color)
   const formattedHarga = `Rp ${bubble.harga.toLocaleString('id-ID')}/kg`
   const formattedPerubahan = `${arrow}${Math.abs(bubble.perubahan).toFixed(1)}%`
 
@@ -96,7 +96,9 @@ function TooltipContent({ bubble, provinsiId }: { bubble: BubbleData; provinsiId
       <p className="text-sm text-muted-foreground mt-1">{formattedHarga}</p>
 
       {/* Persentase perubahan dengan arrow dan warna */}
-      <p className={`text-sm font-bold mt-0.5 ${colorClass}`}>{formattedPerubahan}</p>
+      <p className="text-sm font-bold mt-0.5" style={{ color: colorVar }}>
+        {formattedPerubahan}
+      </p>
 
       {/* Satuan */}
       <p className="text-xs text-muted-foreground mt-0.5">per kg</p>
@@ -127,7 +129,7 @@ export function BubbleTooltip({ bubble, x, y, provinsiId }: BubbleTooltipProps) 
   return (
     <div
       role="tooltip"
-      className="absolute z-50 bg-popover backdrop-blur-md rounded-xl shadow-[0_4px_30px_rgba(0,0,0,0.5)] border border-border p-4 pointer-events-none transition-opacity duration-150 opacity-100"
+      className="absolute z-50 bg-popover backdrop-blur-md rounded-md shadow-[0_4px_30px_rgba(0,0,0,0.5)] border border-border p-4 pointer-events-none transition-opacity duration-150 opacity-100"
       style={{
         left: pos.x,
         top: pos.y,

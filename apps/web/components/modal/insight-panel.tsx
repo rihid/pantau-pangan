@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { useInsight } from '@/lib/hooks/use-insight'
 import { formatTanggal } from '@/lib/modal-utils'
 import { InsightPanelSkeleton } from './insight-panel-skeleton'
+import { InsightContent } from './insight-content'
 
 interface InsightPanelProps {
   komoditasId: number
@@ -50,20 +51,15 @@ export function InsightPanel({ komoditasId, provinsiId }: InsightPanelProps) {
     return null
   }
 
-  const paragraphs = data.insight.split('\n\n')
-
   return (
     <div>
-      <div className="text-sm leading-relaxed">
-        {paragraphs.map((paragraph, index) => (
-          <p key={index} className="mb-4 last:mb-0">
-            {paragraph}
-          </p>
-        ))}
-      </div>
+      <InsightContent markdown={data.insight} />
       {data.cached && (
         <p className="mt-3 text-xs text-muted-foreground">
-          Dari cache · {formatTanggal(data.generatedAt.split('T')[0] ?? data.generatedAt)}
+          Dari cache ·{' '}
+          <span className="font-mono">
+            {formatTanggal(data.generatedAt.split('T')[0] ?? data.generatedAt)}
+          </span>
         </p>
       )}
     </div>

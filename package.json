@@ -54,6 +54,7 @@
     "dotenv": "^17.4.2",
     "drizzle-orm": "^0.45.2",
     "node-cron": "^4.4.1",
-    "postgres": "^3.4.9"
+    "postgres": "^3.4.9",
+    "recharts": "^3.10.1"
   }
 }

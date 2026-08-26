@@ -217,4 +217,44 @@ describe('InsightPanel', () => {
     expect(screen.getByText(/insight tidak tersedia/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /coba lagi/i })).toBeInTheDocument()
   })
+
+  test('8. markdown headings rendered as h3/h4/h5', () => {
+    mockHook({
+      isLoading: false,
+      isError: false,
+      data: {
+        komoditasId: 1,
+        provinsiId: 0,
+        cached: false,
+        generatedAt: '2024-01-01T00:00:00Z',
+        insight: '# Title\n\n## Subtitle\n\n### Detail',
+      },
+    })
+
+    const { container } = render(<InsightPanel {...defaultProps} />)
+
+    expect(container.querySelector('h3')).not.toBeNull()
+    expect(container.querySelector('h4')).not.toBeNull()
+    expect(container.querySelector('h5')).not.toBeNull()
+  })
+
+  test('9. markdown bold rendered as strong', () => {
+    mockHook({
+      isLoading: false,
+      isError: false,
+      data: {
+        komoditasId: 1,
+        provinsiId: 0,
+        cached: false,
+        generatedAt: '2024-01-01T00:00:00Z',
+        insight: 'This is **bold** text.',
+      },
+    })
+
+    const { container } = render(<InsightPanel {...defaultProps} />)
+
+    const strong = container.querySelector('strong')
+    expect(strong).not.toBeNull()
+    expect(strong?.textContent).toBe('bold')
+  })
 })

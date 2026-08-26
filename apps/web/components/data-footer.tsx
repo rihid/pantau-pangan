@@ -1,7 +1,5 @@
 interface DataFooterProps {
   /** YYYY-MM-DD */
-  latestDate?: string
-  /** YYYY-MM-DD */
   earliestDate?: string
 }
 
@@ -14,23 +12,16 @@ function formatTanggal(isoDate: string): string {
   })
 }
 
-export function DataFooter({ latestDate, earliestDate }: DataFooterProps) {
+export function DataFooter({ earliestDate }: DataFooterProps) {
   return (
-    <footer className="flex items-center justify-between px-4 py-1.5 text-xs text-zinc-500 bg-zinc-950/80 backdrop-blur-sm border-t border-white/5">
+    <footer className="flex items-center justify-between px-4 py-1 text-[11px] font-mono text-muted-foreground bg-background/70 backdrop-blur-sm border-t border-border">
       <span>
-        {latestDate ? (
-          <>
-            Data terbaru:{' '}
-            <span className="text-zinc-300 font-medium">{formatTanggal(latestDate)}</span>
-          </>
-        ) : (
-          'Memuat data...'
-        )}
+        Sumber: <span className="text-foreground font-medium">Bank Indonesia · PIHPS</span>
       </span>
-      {earliestDate && latestDate && (
-        <span>
+      {earliestDate && (
+        <span className="hidden sm:inline">
           Akumulasi sejak:{' '}
-          <span className="text-zinc-300 font-medium">{formatTanggal(earliestDate)}</span>
+          <span className="text-foreground font-medium">{formatTanggal(earliestDate)}</span>
         </span>
       )}
     </footer>

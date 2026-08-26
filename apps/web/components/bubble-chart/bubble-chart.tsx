@@ -1,8 +1,8 @@
 'use client'
 
 import * as d3 from 'd3'
-import { useEffect, useRef } from 'react'
-import { clampBubblePosition } from '@/lib/bubble-utils'
+import { useEffect, useMemo, useRef } from 'react'
+import { clampBubblePosition, computeBubbleScale } from '@/lib/bubble-utils'
 import { buildSparklinePoints } from '@pantau-pangan/shared'
 import type { BubbleData } from '@pantau-pangan/shared'
 
@@ -29,6 +29,17 @@ interface BubbleChartProps {
   onBubbleClick?: (bubble: BubbleData) => void
 }
 
+/**
+ * Salin BubbleData dengan radius yang di-scale terhadap ukuran canvas supaya
+ * total luas bubble mengisi canvas tanpa overlap. Dipakai konsisten oleh
+ * simulation (collision + clamp) maupun rendering (circle r, label, sparkline).
+ */
+function scaleBubbleData(data: BubbleData[], width: number, height: number): BubbleData[] {
+  const scale = computeBubbleScale(data, width, height)
+  if (scale === 1) return data
+  return data.map((d) => ({ ...d, radius: d.radius * scale }))
+}
+
 export function BubbleChart({
   data,
   isRefetching = false,
@@ -44,6 +55,10 @@ export function BubbleChart({
   // Preserve positions across data updates keyed by komoditasId
   const prevNodesRef = useRef<Map<number, { x: number; y: number }>>(new Map())
 
+  // Bubble radius yang sudah di-scale terhadap ukuran canvas, supaya tidak
+  // tumpang tindih di layar kecil. Dipakai konsisten oleh simulation & render.
+  const scaledData = useMemo(() => scaleBubbleData(data, width, height), [data, width, height])
+
   useEffect(() => {
     if (!svgRef.current || width === 0 || height === 0) return
 
@@ -53,7 +68,7 @@ export function BubbleChart({
     }
 
     // Build SimulationNode[] from BubbleData[], preserving previous positions
-    const nodes: SimulationNode[] = data.map((d) => {
+    const nodes: SimulationNode[] = scaledData.map((d) => {
       const prev = prevNodesRef.current.get(d.komoditasId)
       return {
         ...d,
@@ -68,10 +83,12 @@ export function BubbleChart({
 
     const svg = d3.select(svgRef.current)
 
-    // Setup force simulation
+    // Bubble bergerak bebas: hanya collide (anti-overlap) + charge (repulsi)
+    // supaya menyebar mengisi canvas. Tanpa forceCenter/forceX/forceY agar
+    // tidak terkonsentrasi di tengah — ukuran bubble sudah di-scale agar
+    // total luasnya muat di canvas, jadi tidak butuh penarikan ke tengah.
     const simulation = d3
       .forceSimulation<SimulationNode>(nodes)
-      .force('center', d3.forceCenter(width / 2, height / 2))
       .force(
         'collide',
         d3.forceCollide<SimulationNode>((d) => d.radius + 2),
@@ -116,10 +133,8 @@ export function BubbleChart({
         const id = el.attr('data-sparkline-id')
         const node = nodeMap.get(id)
         if (node) {
-          el.attr(
-            'transform',
-            `translate(${node.x - SPARKLINE_W / 2},${node.y + SPARKLINE_OFFSET_Y})`,
-          )
+          const offset = parseFloat(el.attr('data-sparkline-offset') ?? '0')
+          el.attr('transform', `translate(${node.x - SPARKLINE_W / 2},${node.y + offset})`)
         }
       })
     })
@@ -142,13 +157,14 @@ export function BubbleChart({
       prevNodesRef.current = newMap
       simulation.stop()
     }
-  }, [data, width, height])
+  }, [scaledData, width, height])
 
-  const ariaLabel = `Bubble chart harga pangan — ${data.length} komoditas`
+  const ariaLabel = `Bubble chart harga pangan — ${scaledData.length} komoditas`
 
   // Normalise search query for case-insensitive match
   const query = searchQuery?.trim().toLowerCase() ?? ''
   const hasQuery = query.length > 0
+  const isMobile = width < MOBILE_BREAKPOINT
 
   return (
     <div className={`w-full h-full${isRefetching ? ' opacity-50' : ''}`}>
@@ -160,7 +176,7 @@ export function BubbleChart({
         height={height}
         className="block"
       >
-        {data.map((d) => {
+        {scaledData.map((d) => {
           const circleAriaLabel = `${d.nama}: Rp ${d.harga.toLocaleString('id-ID')}/kg, ${
             d.perubahan > 0 ? 'naik' : 'turun'
           } ${Math.abs(d.perubahan).toFixed(1)}%`
@@ -175,9 +191,13 @@ export function BubbleChart({
           // Search highlight: dim non-matching bubbles
           const isMatch = hasQuery ? d.nama.toLowerCase().includes(query) : true
 
-          // Font sizes scale with radius — name is larger, pct is ~70% of name size
-          const nameFontSize = Math.max(10, Math.min(22, d.radius * 0.28))
-          const pctFontSize = Math.max(8, Math.min(16, d.radius * 0.2))
+          // Font sizes scale with radius — mobile pakai rasio lebih besar & cap lebih kecil
+          const nameFontSize = isMobile
+            ? Math.max(8, Math.min(18, d.radius * 0.3))
+            : Math.max(10, Math.min(22, d.radius * 0.28))
+          const pctFontSize = isMobile
+            ? Math.max(7, Math.min(13, d.radius * 0.22))
+            : Math.max(8, Math.min(16, d.radius * 0.2))
 
           // Split name into up to 2 lines based on available bubble width
           // Approx char width = 0.55 * fontSize for mixed-case text
@@ -207,17 +227,21 @@ export function BubbleChart({
           const lineHeight = nameFontSize * 1.15
           const gap = pctFontSize * 0.9
 
-          // When sparkline is shown, shift labels up to make room
-          const hasSparkline = d.radius >= 50 && (sparklines?.has(d.komoditasId) ?? false)
-          const sparklineExtraShift = hasSparkline ? -(SPARKLINE_H / 2 + 4) : 0
+          // Sparkline hanya di layar lebar — mobile dihilangkan (bubble terlalu kecil)
+          const hasSparkline =
+            !isMobile && d.radius >= 50 && (sparklines?.has(d.komoditasId) ?? false)
 
           const nameBlockHeight = isTwoLines ? lineHeight + nameFontSize : nameFontSize
           const totalHeight = nameBlockHeight + gap + pctFontSize
-          const blockTop = -totalHeight / 2 + sparklineExtraShift
+          // Grup teks + sparkline di-center bersama, supaya teks pct tidak menabrak sparkline
+          const blockTop = hasSparkline ? -(totalHeight + gap + SPARKLINE_H) / 2 : -totalHeight / 2
 
           const line1Y = blockTop + nameFontSize / 2
           const line2Y = isTwoLines ? line1Y + lineHeight : null
           const pctY = blockTop + nameBlockHeight + gap + pctFontSize / 2
+
+          // Sparkline: tepat di bawah teks pct, dengan jarak gap
+          const sparklineTop = hasSparkline ? blockTop + totalHeight + gap : 0
 
           // Sparkline: positioned below the text block
           const sparklinePoints =
@@ -257,14 +281,14 @@ export function BubbleChart({
                   data-id={d.komoditasId}
                   r={d.radius + 3}
                   fill="none"
-                  stroke="white"
+                  stroke="var(--bubble-label)"
                   strokeWidth={2}
                   strokeOpacity={0.6}
                   style={{ pointerEvents: 'none' }}
                 />
               )}
 
-              {d.radius >= 40 && (
+              {d.radius >= (isMobile ? MOBILE_LABEL_MIN_RADIUS : 40) && (
                 <>
                   {/* Name line 1 */}
                   <text
@@ -274,7 +298,7 @@ export function BubbleChart({
                     dominantBaseline="middle"
                     fontSize={nameFontSize}
                     fontWeight="500"
-                    fill="white"
+                    fill="var(--bubble-label)"
                     style={{ pointerEvents: 'none', userSelect: 'none' }}
                   >
                     {nameLine1}
@@ -288,7 +312,7 @@ export function BubbleChart({
                       dominantBaseline="middle"
                       fontSize={nameFontSize}
                       fontWeight="500"
-                      fill="white"
+                      fill="var(--bubble-label)"
                       style={{ pointerEvents: 'none', userSelect: 'none' }}
                     >
                       {nameLine2}
@@ -302,7 +326,8 @@ export function BubbleChart({
                     dominantBaseline="middle"
                     fontSize={pctFontSize}
                     fontWeight="400"
-                    fill="rgba(255,255,255,0.9)"
+                    fill="var(--bubble-label)"
+                    opacity={0.9}
                     style={{ pointerEvents: 'none', userSelect: 'none' }}
                   >
                     {pct}
@@ -312,9 +337,11 @@ export function BubbleChart({
                   {hasSparkline && sparklinePoints && (
                     <polyline
                       data-sparkline-id={d.komoditasId}
+                      data-sparkline-offset={sparklineTop}
                       points={sparklinePoints}
                       fill="none"
-                      stroke="rgba(255,255,255,0.6)"
+                      stroke="var(--bubble-label)"
+                      strokeOpacity={0.6}
                       strokeWidth={1.5}
                       strokeLinejoin="round"
                       strokeLinecap="round"
@@ -334,5 +361,7 @@ export function BubbleChart({
 // Sparkline dimensions (constant, used in tick handler too)
 const SPARKLINE_W = 60
 const SPARKLINE_H = 20
-// Vertical offset from bubble center to top of sparkline
-const SPARKLINE_OFFSET_Y = 10
+// Canvas width di bawah ini dianggap mobile — sparkline dihilangkan, font lebih
+// kecil, dan label muncul di bubble yang lebih kecil (MOBILE_LABEL_MIN_RADIUS).
+const MOBILE_BREAKPOINT = 640
+const MOBILE_LABEL_MIN_RADIUS = 24

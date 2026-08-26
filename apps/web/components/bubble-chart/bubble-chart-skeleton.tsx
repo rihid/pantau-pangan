@@ -39,7 +39,7 @@ export function BubbleChartSkeleton() {
           cx={circle.cx}
           cy={circle.cy}
           r={circle.r}
-          fill="#e5e7eb"
+          fill="var(--surface-2)"
           className="animate-pulse"
         />
       ))}
