@@ -4,14 +4,12 @@ import { useMemo, useState } from 'react'
 import type { BubbleData, Timeframe } from '@pantau-pangan/shared'
 import { useKomoditas } from '@/lib/hooks/use-komoditas'
 import { useDataRange } from '@/lib/hooks/use-data-range'
-import { useProvinsi } from '@/lib/hooks/use-provinsi'
 import { summarizeBubbles } from '@/lib/summary-utils'
 import { TopBar } from '@/components/layout/top-bar'
 import { MarketBar } from '@/components/layout/market-bar'
 import { LegendPanel } from '@/components/sidebar/legend-panel'
 import { RingkasanSidebar } from '@/components/sidebar/ringkasan-sidebar'
 import { TimeframeFilter } from '@/components/filters/timeframe-filter'
-import { SearchFilter } from '@/components/filters/search-filter'
 import { DataFooter } from '@/components/data-footer'
 import { KomoditasModal } from '@/components/modal/komoditas-modal'
 import dynamic from 'next/dynamic'
@@ -37,8 +35,6 @@ export default function HomePage() {
 
   const { data, isLoading, isError, isRefetching, refetch } = useKomoditas(timeframe, provinsiId)
   const { disabledTimeframes, availableDays, dataRange } = useDataRange(provinsiId)
-  const { data: provinsiList } = useProvinsi()
-  const provinsiNama = provinsiList?.find((p) => p.id === provinsiId)?.nama ?? 'Semua Provinsi'
 
   const summary = useMemo(() => summarizeBubbles(data ?? []), [data])
 
@@ -72,18 +68,16 @@ export default function HomePage() {
       <div className="grid grid-rows-[auto_auto_1fr_auto] h-dvh overflow-hidden bg-page-gradient text-foreground">
         {/* Top bar */}
         <TopBar
-          provinsiId={provinsiId}
-          onProvinsiChange={setProvinsiId}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
           onRefresh={handleRefresh}
           isRefetching={isRefetching}
-          isLive={!isLoading && !isError}
         />
 
         {/* Market status sub-header */}
         <MarketBar
-          provinsiNama={provinsiNama}
+          provinsiId={provinsiId}
+          onProvinsiChange={setProvinsiId}
           isLive={!isLoading && !isError}
           latestDate={dataRange?.newestDate ?? undefined}
           earliestDate={dataRange?.oldestDate ?? undefined}
@@ -116,7 +110,7 @@ export default function HomePage() {
             {/* Floating dock: timeframe + search (mobile) — satu sumber, semua breakpoint */}
             <nav
               aria-label="Filter dan navigasi"
-              className="absolute bottom-4 inset-x-0 z-10 flex flex-col items-center gap-2 pointer-events-none"
+              className="absolute bottom-4 inset-x-0 z-10 flex justify-center pointer-events-none"
             >
               <div className="pointer-events-auto">
                 <TimeframeFilter
@@ -125,9 +119,6 @@ export default function HomePage() {
                   disabledTimeframes={disabledTimeframes}
                   availableDays={availableDays}
                 />
-              </div>
-              <div className="pointer-events-auto md:hidden">
-                <SearchFilter value={searchQuery} onChange={setSearchQuery} />
               </div>
             </nav>
           </main>

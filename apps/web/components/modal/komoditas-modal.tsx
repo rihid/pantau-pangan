@@ -5,10 +5,13 @@ import type { Timeframe } from '@pantau-pangan/shared'
 import { LayoutDashboard, Sparkles } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader } from '@/components/ui/dialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Button } from '@/components/ui/button'
 import { ModalHeader } from './modal-header'
 import { HistorisChart } from './historis-chart'
 import { GeografisTable } from './geografis-table'
 import { InsightPanel } from './insight-panel'
+
+const TIMEFRAMES: Timeframe[] = ['1D', '1W', '1M', '3M', '1Y']
 
 interface ModalState {
   komoditasId: number
@@ -43,17 +46,12 @@ export function KomoditasModal({ modalState, onClose }: KomoditasModalProps) {
       >
         {modalState && (
           <>
-            <DialogHeader className="px-4 pt-4 sm:px-6 sm:pt-6 pb-0">
-              <ModalHeader
-                nama={modalState.nama}
-                harga={modalState.harga}
-                timeframe={timeframe}
-                onTimeframeChange={setTimeframe}
-              />
+            <DialogHeader className="px-4 pt-4 sm:px-6 sm:pt-6 pb-4 border-b border-border">
+              <ModalHeader nama={modalState.nama} harga={modalState.harga} onClose={onClose} />
             </DialogHeader>
 
             <Tabs defaultValue="overview" className="px-4 pb-4 sm:px-6 sm:pb-6 mt-4">
-              <TabsList>
+              <TabsList variant="line">
                 <TabsTrigger value="overview">
                   <LayoutDashboard className="size-4" />
                   Overview
@@ -64,8 +62,23 @@ export function KomoditasModal({ modalState, onClose }: KomoditasModalProps) {
                 </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="overview" className="flex flex-col gap-6 mt-4">
-                {/* Chart historis — full width */}
+              <TabsContent value="overview" className="flex flex-col gap-4 mt-4">
+                {/* Timeframe selector */}
+                <div className="flex items-center gap-1">
+                  {TIMEFRAMES.map((tf) => (
+                    <Button
+                      key={tf}
+                      size="sm"
+                      variant={tf === timeframe ? 'default' : 'outline'}
+                      className="rounded-md text-xs"
+                      onClick={() => setTimeframe(tf)}
+                    >
+                      {tf}
+                    </Button>
+                  ))}
+                </div>
+
+                {/* Chart historis — non-scroll, menyesuaikan ukuran mobile */}
                 <section>
                   <h3 className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground mb-3">
                     Chart Historis
@@ -78,7 +91,7 @@ export function KomoditasModal({ modalState, onClose }: KomoditasModalProps) {
                   />
                 </section>
 
-                {/* Tabel Geografis — full width */}
+                {/* Tabel Geografis — scroll horizontal saja (vertical di level modal) */}
                 <section>
                   <h3 className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground mb-3">
                     Tabel Geografis

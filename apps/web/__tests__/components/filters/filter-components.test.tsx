@@ -6,16 +6,7 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { TimeframeFilter } from '@/components/filters/timeframe-filter'
-import { ProvinsiFilter } from '@/components/filters/provinsi-filter'
 import type { Timeframe } from '@pantau-pangan/shared'
-
-// Mock useProvinsi so ProvinsiFilter doesn't need QueryClientProvider
-vi.mock('@/lib/hooks/use-provinsi', () => ({
-  useProvinsi: vi.fn(),
-}))
-
-import { useProvinsi } from '@/lib/hooks/use-provinsi'
-const mockUseProvinsi = vi.mocked(useProvinsi)
 
 // ─── TimeframeFilter ────────────────────────────────────────────────────────
 
@@ -99,30 +90,5 @@ describe('TimeframeFilter', () => {
     render(<TimeframeFilter value="1W" onChange={vi.fn()} />)
     // no disabled buttons by default
     expect(screen.getByRole('button', { name: '1M' })).not.toBeDisabled()
-  })
-})
-
-// ─── ProvinsiFilter ──────────────────────────────────────────────────────────
-
-describe('ProvinsiFilter', () => {
-  afterEach(() => vi.clearAllMocks())
-
-  it('shows disabled trigger with placeholder when isLoading', () => {
-    mockUseProvinsi.mockReturnValue({ data: undefined, isLoading: true, isError: false })
-    render(<ProvinsiFilter value={0} onChange={vi.fn()} />)
-    const trigger = screen.getByRole('combobox')
-    expect(trigger).toBeDisabled()
-  })
-
-  it('renders "Semua Provinsi" option when not loading', () => {
-    mockUseProvinsi.mockReturnValue({
-      data: [{ id: 1, biId: 1, nama: 'DKI Jakarta' }],
-      isLoading: false,
-      isError: false,
-    })
-    render(<ProvinsiFilter value={0} onChange={vi.fn()} />)
-    // The trigger should not be disabled
-    const trigger = screen.getByRole('combobox')
-    expect(trigger).not.toBeDisabled()
   })
 })

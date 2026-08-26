@@ -10,6 +10,20 @@ import type { HargaHarian } from '@pantau-pangan/shared'
 // Mock useHistorisModal
 vi.mock('@/lib/hooks/use-historis-modal')
 
+// Mock recharts so tests run reliably in jsdom
+vi.mock('recharts', () => ({
+  AreaChart: ({ children }: { children: React.ReactNode }) => <svg>{children}</svg>,
+  Area: () => null,
+  XAxis: () => null,
+  YAxis: () => null,
+  CartesianGrid: () => null,
+  Tooltip: () => null,
+  ResponsiveContainer: ({ children }: { children: React.ReactNode }) => (
+    <div style={{ width: 400, height: 300 }}>{children}</div>
+  ),
+  ReferenceLine: () => null,
+}))
+
 // Mock ResizeObserver
 if (typeof globalThis.ResizeObserver === 'undefined') {
   globalThis.ResizeObserver = class ResizeObserver {
@@ -24,71 +38,6 @@ if (typeof globalThis.ResizeObserver === 'undefined') {
     disconnect() {}
   }
 }
-
-// Mock d3 to prevent DOM mutation errors in jsdom
-vi.mock('d3', () => {
-  // A scale mock that is callable (returns 0) and has chainable methods
-  function makeScale(): ((...args: unknown[]) => number) & Record<string, unknown> {
-    const scale: ((...args: unknown[]) => number) & Record<string, unknown> = Object.assign(
-      (..._args: unknown[]): number => 0,
-      {
-        domain: function () {
-          return scale
-        },
-        range: function () {
-          return scale
-        },
-        nice: function () {
-          return scale
-        },
-      } as Record<string, unknown>,
-    )
-    return scale
-  }
-
-  // Chainable no-op proxy for SVG selection operations
-  function makeChain(): Record<string, unknown> {
-    const proxy: Record<string, unknown> = new Proxy(
-      {},
-      {
-        get: (_target, prop) => {
-          if (prop === 'empty') return () => true
-          if (prop === 'remove') return () => proxy
-          return (..._args: unknown[]) => proxy
-        },
-      },
-    )
-    return proxy
-  }
-
-  const chain = makeChain()
-
-  // axis factory: chainable with tickFormat
-  const axisFn = () => {
-    const obj: Record<string, unknown> = {
-      tickFormat: () => obj,
-      ticks: () => obj,
-      tickSize: () => obj,
-    }
-    return obj
-  }
-
-  return {
-    select: () => chain,
-    scaleTime: makeScale,
-    scaleLinear: makeScale,
-    line: () => ({ x: () => ({ y: () => ({ curve: () => () => '' }) }) }),
-    curveMonotoneX: {},
-    extent: () => [undefined, undefined],
-    min: (arr: number[]) => (arr.length ? Math.min(...arr) : undefined),
-    max: (arr: number[]) => (arr.length ? Math.max(...arr) : undefined),
-    axisBottom: axisFn,
-    axisLeft: axisFn,
-    timeFormat: () => () => '',
-    format: () => () => '',
-    transition: () => ({ duration: () => ({}) }),
-  }
-})
 
 import { HistorisChart } from '@/components/modal/historis-chart'
 import * as useHistorisModalModule from '@/lib/hooks/use-historis-modal'
@@ -199,8 +148,8 @@ describe('HistorisChart', () => {
 
     const { container } = render(<HistorisChart {...defaultProps} namaKomoditas="Beras Medium I" />)
 
-    const svg = container.querySelector('svg[role="img"]')
-    expect(svg).not.toBeNull()
-    expect(svg?.getAttribute('aria-label')).toContain('Beras Medium I')
+    const wrapper = container.querySelector('[role="img"]')
+    expect(wrapper).not.toBeNull()
+    expect(wrapper?.getAttribute('aria-label')).toContain('Beras Medium I')
   })
 })

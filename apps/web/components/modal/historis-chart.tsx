@@ -1,8 +1,18 @@
 'use client'
 
-import * as d3 from 'd3'
-import { useEffect, useRef, useState } from 'react'
-import { computeHighLow, filterByTimeframe } from '@/lib/modal-utils'
+import { useMemo, useState, useEffect } from 'react'
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  ReferenceLine,
+} from 'recharts'
+import type { TooltipContentProps } from 'recharts'
+import { filterByTimeframe, formatHargaRp } from '@/lib/modal-utils'
 import { useHistorisModal } from '@/lib/hooks/use-historis-modal'
 import { HistorisChartSkeleton } from './historis-chart-skeleton'
 import type { HargaHarian, Timeframe } from '@pantau-pangan/shared'
@@ -14,10 +24,63 @@ interface HistorisChartProps {
   namaKomoditas: string
 }
 
-const MARGIN = { top: 20, right: 40, bottom: 30, left: 60 }
+function formatTickDate(tanggal: string): string {
+  return `${tanggal.slice(8, 10)}/${tanggal.slice(5, 7)}`
+}
 
-/** Format angka ribuan dengan locale ID (titik sebagai separator) */
-const formatRibuan = (value: number): string => Math.round(value).toLocaleString('id-ID')
+function formatTooltipDate(tanggal: string): string {
+  const [year, month, day] = tanggal.split('-')
+  return `${day}/${month}/${year}`
+}
+
+function formatYAxis(value: number): string {
+  return `Rp ${Math.round(value).toLocaleString('id-ID')}`
+}
+
+/**
+ * True di layar >= sm (640px) — dipakai untuk menampilkan label harga di kanan
+ * dan semua tick tanggal hanya di layar lebar, versi ringkas di mobile.
+ */
+function useIsDesktop(): boolean {
+  const [isDesktop, setIsDesktop] = useState(false)
+
+  useEffect(() => {
+    if (typeof window.matchMedia !== 'function') return
+    const mq = window.matchMedia('(min-width: 640px)')
+    setIsDesktop(mq.matches)
+    const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches)
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [])
+
+  return isDesktop
+}
+
+interface ChartDataPoint {
+  tanggal: string
+  harga: number
+}
+
+// Tren chart historis pakai konvensi pasar finansial (naik=hijau, turun=merah),
+// sengaja BERBEDA dari konvensi bubble (merah=naik) — permintaan eksplisit user.
+const TREND_UP = 'var(--signal-down)'
+const TREND_DOWN = 'var(--signal-up-strong)'
+const TREND_FLAT = 'var(--foreground)'
+
+function CustomTooltip({ active, payload, label }: TooltipContentProps) {
+  if (!active || !payload || payload.length === 0) return null
+  const price = payload[0]?.value
+  return (
+    <div className="rounded-md border border-border bg-popover text-popover-foreground px-3 py-2 shadow-sm text-sm">
+      <div className="text-muted-foreground mb-1 text-xs">
+        {typeof label === 'string' ? formatTooltipDate(label) : ''}
+      </div>
+      <div className="font-mono font-medium">
+        {typeof price === 'number' ? formatHargaRp(price) : '—'}
+      </div>
+    </div>
+  )
+}
 
 export function HistorisChart({
   komoditasId,
@@ -26,163 +89,35 @@ export function HistorisChart({
   namaKomoditas,
 }: HistorisChartProps) {
   const { data, isLoading, isError, refetch } = useHistorisModal(komoditasId, timeframe, provinsiId)
+  const [mounted, setMounted] = useState(false)
+  const isDesktop = useIsDesktop()
 
-  const svgRef = useRef<SVGSVGElement>(null)
-  const containerRef = useRef<HTMLDivElement>(null)
-  const [dimensions, setDimensions] = useState<{ width: number; height: number }>({
-    width: 0,
-    height: 200,
-  })
-
-  // ResizeObserver untuk mendapatkan dimensi container yang responsif
   useEffect(() => {
-    const container = containerRef.current
-    if (!container) return
-
-    const observer = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        const { width, height } = entry.contentRect
-        setDimensions({ width, height })
-      }
-    })
-
-    observer.observe(container)
-    return () => observer.disconnect()
+    setMounted(true)
   }, [])
 
   const filteredData: HargaHarian[] = data ? filterByTimeframe(data, timeframe) : []
 
-  // D3 rendering
-  useEffect(() => {
-    const { width, height } = dimensions
-    if (!svgRef.current || width === 0 || height === 0 || filteredData.length === 0) return
+  const chartData: ChartDataPoint[] = useMemo(() => {
+    return filteredData
+      .slice()
+      .sort((a, b) => new Date(a.tanggal).getTime() - new Date(b.tanggal).getTime())
+      .map((d) => ({ tanggal: d.tanggal, harga: d.harga }))
+  }, [filteredData])
 
-    const innerW = width - MARGIN.left - MARGIN.right
-    const innerH = height - MARGIN.top - MARGIN.bottom
+  const tickDates = useMemo(() => {
+    if (chartData.length <= 3) return chartData.map((d) => d.tanggal)
+    const first = chartData[0]?.tanggal
+    const middle = chartData[Math.floor(chartData.length / 2)]?.tanggal
+    const last = chartData[chartData.length - 1]?.tanggal
+    return [first, middle, last].filter((t): t is string => t !== undefined)
+  }, [chartData])
 
-    if (innerW <= 0 || innerH <= 0) return
+  const latestPrice = chartData.length > 0 ? chartData[chartData.length - 1]?.harga : undefined
 
-    const svg = d3.select(svgRef.current)
-
-    // Inisialisasi struktur SVG hanya sekali
-    let rootG = svg.select<SVGGElement>('g.chart-root')
-    if (rootG.empty()) {
-      rootG = svg
-        .append('g')
-        .attr('class', 'chart-root')
-        .attr('transform', `translate(${MARGIN.left},${MARGIN.top})`)
-
-      rootG.append('g').attr('class', 'x-axis').attr('transform', `translate(0,${innerH})`)
-      rootG.append('g').attr('class', 'y-axis')
-      rootG
-        .append('path')
-        .attr('class', 'line-path')
-        .attr('fill', 'none')
-        .attr('stroke', 'var(--foreground)')
-        .attr('stroke-width', 2)
-      rootG.append('g').attr('class', 'high-low-markers')
-    }
-
-    // Parse tanggal dari string YYYY-MM-DD
-    const parsedData = filteredData
-      .map((d) => ({ ...d, date: new Date(d.tanggal) }))
-      .filter((d) => !isNaN(d.date.getTime()))
-      .sort((a, b) => a.date.getTime() - b.date.getTime())
-
-    if (parsedData.length === 0) return
-
-    // Skala X — scaleTime
-    const xExtent = d3.extent(parsedData, (d) => d.date) as [Date, Date]
-    const xScale = d3.scaleTime().domain(xExtent).range([0, innerW])
-
-    // Skala Y — scaleLinear dengan padding 2%
-    const prices = parsedData.map((d) => d.harga)
-    const minPrice = d3.min(prices)!
-    const maxPrice = d3.max(prices)!
-    const yPad = (maxPrice - minPrice) * 0.02 || maxPrice * 0.02 || 1
-    const yScale = d3
-      .scaleLinear()
-      .domain([minPrice - yPad, maxPrice + yPad])
-      .range([innerH, 0])
-      .nice()
-
-    const transition = d3.transition().duration(300)
-
-    // Update sumbu X
-    const xAxis = d3.axisBottom(xScale).tickFormat((d) => d3.timeFormat('%d/%m')(d as Date))
-    const xAxisG = rootG.select<SVGGElement>('g.x-axis')
-    xAxisG.attr('transform', `translate(0,${innerH})`).transition(transition).call(xAxis)
-    xAxisG.selectAll('text').attr('font-family', 'var(--font-mono)')
-
-    // Update sumbu Y
-    const yAxisG = rootG.select<SVGGElement>('g.y-axis')
-    const yAxis = d3.axisLeft(yScale).tickFormat((d) => formatRibuan(d as number))
-    yAxisG.transition(transition).call(yAxis)
-    yAxisG.selectAll('text').attr('font-family', 'var(--font-mono)')
-
-    // Update garis chart
-    const lineGen = d3
-      .line<{ date: Date; harga: number }>()
-      .x((d) => xScale(d.date))
-      .y((d) => yScale(d.harga))
-      .curve(d3.curveMonotoneX)
-
-    rootG
-      .select<SVGPathElement>('path.line-path')
-      .datum(parsedData)
-      .transition(transition)
-      .attr('d', lineGen)
-
-    // HighLowMarker — hanya jika data > 1 titik
-    const markersG = rootG.select<SVGGElement>('g.high-low-markers')
-    markersG.selectAll('*').remove()
-
-    const highLow = computeHighLow(filteredData)
-    if (highLow && filteredData.length > 1) {
-      const markers = [
-        {
-          item: highLow.max,
-          color: 'var(--signal-up-strong)',
-          label: `Rp ${formatRibuan(highLow.max.harga)}`,
-        },
-        {
-          item: highLow.min,
-          color: 'var(--signal-down-strong)',
-          label: `Rp ${formatRibuan(highLow.min.harga)}`,
-        },
-      ]
-
-      for (const marker of markers) {
-        const itemDate = new Date(marker.item.tanggal)
-        const cx = xScale(itemDate)
-        const cy = yScale(marker.item.harga)
-
-        markersG
-          .append('circle')
-          .attr('data-marker', 'true')
-          .attr('cx', cx)
-          .attr('cy', cy)
-          .attr('r', 5)
-          .attr('fill', marker.color)
-          .attr('stroke', 'white')
-          .attr('stroke-width', 1.5)
-
-        // Label di samping marker; geser ke kiri jika terlalu ke kanan
-        const labelX = cx + 8 > innerW - 60 ? cx - 8 : cx + 8
-        const textAnchor = cx + 8 > innerW - 60 ? 'end' : 'start'
-
-        markersG
-          .append('text')
-          .attr('x', labelX)
-          .attr('y', cy + 4)
-          .attr('text-anchor', textAnchor)
-          .attr('font-family', 'var(--font-mono)')
-          .attr('font-size', 11)
-          .attr('fill', marker.color)
-          .text(marker.label)
-      }
-    }
-  }, [filteredData, dimensions])
+  const firstPrice = chartData.length > 0 ? chartData[0]?.harga : undefined
+  const trend = firstPrice !== undefined && latestPrice !== undefined ? latestPrice - firstPrice : 0
+  const trendColor = trend > 0 ? TREND_UP : trend < 0 ? TREND_DOWN : TREND_FLAT
 
   // --- Render states ---
 
@@ -195,6 +130,7 @@ export function HistorisChart({
       <div className="flex flex-col items-center justify-center gap-3 h-[200px] text-sm text-muted-foreground">
         <span>Gagal memuat data historis.</span>
         <button
+          type="button"
           onClick={() => void refetch()}
           className="px-3 py-1.5 rounded-md bg-secondary text-secondary-foreground hover:bg-secondary/80 text-xs font-medium transition-colors"
         >
@@ -212,16 +148,87 @@ export function HistorisChart({
     )
   }
 
+  if (!mounted) {
+    return <div className="h-[300px]" />
+  }
+
   return (
-    <div ref={containerRef} className="w-full" style={{ height: 200 }}>
-      <svg
-        ref={svgRef}
-        role="img"
-        aria-label={`Line chart harga ${namaKomoditas} — ${filteredData.length} hari terakhir`}
-        width={dimensions.width}
-        height={dimensions.height}
-        className="block overflow-visible"
-      />
+    <div
+      className="w-full h-[200px] sm:h-[300px]"
+      role="img"
+      aria-label={`Line chart harga ${namaKomoditas} — ${chartData.length} hari terakhir`}
+    >
+      <ResponsiveContainer width="100%" height="100%">
+        <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+          <defs>
+            <linearGradient id="historisGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor={trendColor} stopOpacity={0.25} />
+              <stop offset="95%" stopColor={trendColor} stopOpacity={0} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+          <XAxis
+            dataKey="tanggal"
+            ticks={isDesktop ? undefined : tickDates}
+            tickFormatter={formatTickDate}
+            tick={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: 12,
+              fill: 'var(--muted-foreground)',
+            }}
+            axisLine={{ stroke: 'var(--border)' }}
+            tickLine={{ stroke: 'var(--border)' }}
+          />
+          {/* Label harga di kanan hanya di layar lebar — mobile chart full ke kanan */}
+          {isDesktop && (
+            <YAxis
+              orientation="right"
+              tickFormatter={formatYAxis}
+              tick={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: 12,
+                fill: 'var(--muted-foreground)',
+              }}
+              axisLine={{ stroke: 'var(--border)' }}
+              tickLine={{ stroke: 'var(--border)' }}
+              width={80}
+            />
+          )}
+          <Tooltip content={CustomTooltip} />
+          {typeof latestPrice === 'number' && (
+            <ReferenceLine
+              y={latestPrice}
+              stroke={trendColor}
+              strokeDasharray="4 4"
+              label={
+                isDesktop
+                  ? {
+                      value: formatHargaRp(latestPrice),
+                      position: 'right',
+                      fill: trendColor,
+                      fontSize: 12,
+                      fontFamily: 'var(--font-mono)',
+                    }
+                  : undefined
+              }
+            />
+          )}
+          <Area
+            type="monotone"
+            dataKey="harga"
+            stroke={trendColor}
+            strokeWidth={2}
+            fill="url(#historisGradient)"
+            dot={false}
+            activeDot={{
+              r: 4,
+              fill: trendColor,
+              stroke: 'var(--background)',
+              strokeWidth: 2,
+            }}
+          />
+        </AreaChart>
+      </ResponsiveContainer>
     </div>
   )
 }

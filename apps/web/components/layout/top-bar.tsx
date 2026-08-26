@@ -1,54 +1,34 @@
 'use client'
 
-import { ProvinsiFilter } from '@/components/filters/provinsi-filter'
 import { SearchFilter } from '@/components/filters/search-filter'
 import { ThemeToggle } from '@/components/theme-toggle'
 
 interface TopBarProps {
-  provinsiId: number
-  onProvinsiChange: (id: number) => void
   searchQuery: string
   onSearchChange: (q: string) => void
   onRefresh: () => void
   isRefetching: boolean
-  /** Untuk indikator "live" di logo — ping hanya saat data sehat. */
-  isLive: boolean
 }
 
 /**
  * Top bar dashboard — wordmark kiri, omnisearch tengah, kontrol kanan.
  * Timeframe pindah ke floating dock di atas canvas (pola Verdict).
+ * Filter wilayah (provinsi) pindah ke MarketBar.
  */
-export function TopBar({
-  provinsiId,
-  onProvinsiChange,
-  searchQuery,
-  onSearchChange,
-  onRefresh,
-  isRefetching,
-  isLive,
-}: TopBarProps) {
+export function TopBar({ searchQuery, onSearchChange, onRefresh, isRefetching }: TopBarProps) {
   return (
     <header className="flex items-center justify-between gap-3 h-12 px-3 sm:px-4 border-b border-border bg-background/70 backdrop-blur-md">
       {/* Logo + wordmark */}
       <div className="flex items-center gap-2 shrink-0">
-        <div className="relative w-7 h-7 shrink-0">
-          <img
-            src="/pantau-pangan.png"
-            alt="Logo Pantau Pangan"
-            width={28}
-            height={28}
-            className="w-7 h-7 rounded-full object-cover"
-          />
-          {isLive && (
-            <span className="absolute -bottom-0.5 -right-0.5 flex h-2.5 w-2.5" aria-hidden="true">
-              <span className="absolute inline-flex h-full w-full rounded-full bg-padi-green opacity-75 animate-ping motion-reduce:animate-none" />
-              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-padi-green border-2 border-background" />
-            </span>
-          )}
-        </div>
+        <img
+          src="/cryptobubbles_logo_transparent.png"
+          alt="Logo Pantau Pangan"
+          width={28}
+          height={28}
+          className="w-7 h-7 shrink-0 object-contain"
+        />
         <span className="text-sm font-bold tracking-tight text-foreground hidden sm:block">
-          PANTAU PANGAN
+          Pantau Pangan
         </span>
       </div>
 
@@ -59,7 +39,6 @@ export function TopBar({
 
       {/* Right controls */}
       <div className="flex items-center gap-2 shrink-0">
-        <ProvinsiFilter value={provinsiId} onChange={onProvinsiChange} />
         <button
           onClick={onRefresh}
           disabled={isRefetching}
