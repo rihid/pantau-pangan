@@ -2,8 +2,8 @@
 
 > Visualisasi harga pangan strategis nasional berbasis bubble chart interaktif
 
-**Version:** 1.8  
-**Status:** M6 Polish Done — Ready for M7 Deploy  
+**Version:** 1.9  
+**Status:** M6b Dashboard Layout Done — Ready for M7 Deploy  
 **Stack finalized:** ✅
 
 > **Branding:** Nama project resmi adalah **Pantau Pangan**. "Gelembung" boleh dipakai sebagai tagline visual (mis. _"Pantau Pangan — gelembung harga pangan strategis"_), tapi semua nama folder, package, database, dan domain pakai `pantau-pangan` / `pantaupangan.id`.
@@ -130,14 +130,38 @@ Nasional (level 0)
 
 ## 6. Fitur Detail
 
-### 6.1 Halaman Utama — Bubble Chart
+### 6.1 Halaman Utama — Dashboard
 
-**Tampilan:**
+Layout dashboard grid (M6b) — bukan full-screen chart polos. Chart tetap dominan, chrome dikelola sebagai zona terpisah:
 
-- Full-screen bubble chart dengan D3.js force simulation
+```
+┌────────────────────────────────────────────────────────┐
+│ TopBar (glass) — logo · omnisearch · refresh · mode     │
+├────────────────────────────────────────────────────────┤
+│ MarketBar — ● Live · data {tgl} · {tgl} · provinsi      │
+├──────────┬─────────────────────────────┬───────────────┤
+│ Legend   │ Bubble chart (D3)           │ Ringkasan      │
+│ Panel    │ + floating dock timeframe   │ Sidebar        │
+│ (lg+)    │                             │ (lg+)          │
+├──────────┴─────────────────────────────┴───────────────┤
+│ DataFooter — sumber · akumulasi sejak                   │
+└────────────────────────────────────────────────────────┘
+```
+
+**Zona layout:**
+
+- **TopBar** (glass `backdrop-blur`): logo + wordmark, omnisearch, refresh manual, toggle dark/light
+- **MarketBar**: indikator "Live" (pulsing dot), rentang tanggal data terbaru, filter provinsi
+- **LegendPanel** (kiri, `lg+`): legenda warna per timeframe + badge data points
+- **RingkasanSidebar** (kanan, `lg+`): verdict pasar, bar proporsi, Top Movers — lihat detail di bawah
+- **Floating dock**: filter timeframe melayang di bawah canvas — satu sumber untuk semua breakpoint (mobile & desktop)
+- **DataFooter**: strip sumber data
+
+**Bubble chart:**
+
 - Setiap bubble = satu komoditas
 - **Ukuran bubble** = proporsional terhadap `|% perubahan|` yang dinormalisasi terhadap **threshold `significant` per timeframe** (lihat 6.4). Hari quiet → semua bubble kecil; hari volatile → bubble membesar. Ada minimum size agar bubble terkecil tetap kelihatan.
-- **Warna bubble** (threshold per timeframe — lihat 6.4):
+- **Warna bubble** (threshold per timeframe — lihat 6.4; definisi warna sinyal lengkap di `DESIGN.md`):
   - Hijau tua → turun ≥ `significant`
   - Hijau muda → turun antara 0 dan `significant`
   - Abu → stabil (|perubahan| < `stable / 5`)
@@ -146,19 +170,29 @@ Nasional (level 0)
 - **Indikator arah:** arrow (↑/↓) di label setiap bubble — aksesibilitas color-blind, jangan andalkan warna saja.
 - **Label bubble:** nama singkat komoditas + arrow + % perubahan
 - **Sparkline** di dalam bubble — hanya ditampilkan jika `radius >= 50px`. Bubble lebih kecil dari itu, sparkline tidak readable; pindah ke tooltip/hover saja.
+- Search: highlight ring (`stroke white`) di bubble yang match + dim non-match (`opacity 0.2`)
 - Animasi fisika (bubble melayang, bisa di-drag)
+
+**RingkasanSidebar (verdict panel):**
+
+- **Verdict headline**: "Pasar didominasi kenaikan/penurunan — {naik}/{total} naik"
+- **Bar proporsi**: segmen naik/turun/stabil memakai signal colors — ini data volatilitas, bukan dekorasi (Signal Quarantine Rule, `DESIGN.md`)
+- **Top Movers**: daftar komoditas dengan pergerakan terbesar (urut |%|), klik item → buka modal komoditas
+- Agregat dihitung dari `summarizeBubbles()` di `apps/web/lib/summary-utils.ts`
 
 **Controls:**
 
-- **Filter timeframe:** 1D / 1W / 1M / 3M / 1Y — mengubah basis perhitungan % perubahan **dan** threshold warna/ukuran. Setiap tombol menampilkan badge data points (`1Y · 12d`) saat data belum mencapai durasi penuh.
-- **Filter provinsi:** dropdown — default: Semua Provinsi (nasional)
-- **Search komoditas:** input — highlight bubble yang match
-- **Toggle dark/light mode**
-- **Refresh manual:** re-fetch data terbaru
+- **Filter timeframe:** 1D / 1W / 1M / 3M / 1Y — floating dock di bawah canvas. Mengubah basis perhitungan % perubahan **dan** threshold warna/ukuran. Setiap tombol menampilkan badge data points (`1Y · 12d`) saat data belum mencapai durasi penuh.
+- **Filter provinsi:** dropdown di MarketBar — default: Semua Provinsi (nasional)
+- **Search komoditas:** omnisearch di TopBar — highlight bubble yang match
+- **Toggle dark/light mode** di TopBar
+- **Refresh manual** di TopBar — re-fetch data terbaru
 
-**Footer informasi data:**
+**Footer informasi data (M6b):**
 
-- _"Data terkini per {tanggal_terbaru}, {jam_scrape} WIB · Akumulasi sejak {tanggal_pertama}"_ — transparan ke user soal kualitas & cakupan data.
+- **DataFooter**: "Sumber: Bank Indonesia · PIHPS" + "Akumulasi sejak {tanggal_pertama}"
+- **MarketBar**: "● Live" + "data {tanggal_terbaru} · {tanggal_pertama}"
+- `jam_scrape` tidak lagi ditampilkan — digantikan indikator Live + rentang tanggal di MarketBar. Transparansi data tetap terjaga lewat dua tempat ini.
 
 ### 6.2 Filter Timeframe — Graceful Degradation
 
@@ -203,36 +237,38 @@ Threshold ditentukan per timeframe karena pergerakan harga pangan punya skala be
 
 Konstanta ini didefinisikan di `packages/shared/src/constants.ts` sebagai `VOLATILITY_THRESHOLDS`.
 
-### 6.3 Modal Detail (klik bubble)
+### 6.3 Modal Detail (klik bubble / item Top Movers)
 
-Terinspirasi dari panel CryptoBubbles, terdiri dari:
+Terinspirasi dari panel CryptoBubbles. Dibuka dari klik bubble di chart ATAU klik item di Top Movers (RingkasanSidebar). Struktur **tabs Overview / Insight** (M6b):
 
-**Header:**
+**Header (muncul di semua tab):**
 
 - Nama komoditas lengkap
 - Harga hari ini (Rp X.XXX/kg)
 - % perubahan sesuai timeframe aktif (dengan warna + arrow)
-- Tab timeframe: 1D / 1W / 1M / 3M / 1Y
 
-**Chart Historis:**
+**Tab Overview:**
 
-- Line chart dari data yang terakumulasi di DB
-- Hari pertama deploy: 5 hari
-- Makin lama project jalan, makin panjang chartnya
-- Tandai titik harga tertinggi dan terendah
+- **Selector timeframe:** buttons 1D / 1W / 1M / 3M / 1Y — default 1D, reset ke 1D setiap ganti komoditas
+- **Chart Historis:**
+  - Line chart dari data yang terakumulasi di DB
+  - Hari pertama deploy: 5 hari
+  - Makin lama project jalan, makin panjang chartnya
+  - Tandai titik harga tertinggi dan terendah
+- **Tabel Geografis:**
+  - Data dari `GetDetailGridData2` (selalu 5 hari terakhir, real-time dari BI)
+  - Tree collapsible: Nasional → Provinsi → Kota → Pasar
+  - 5 kolom tanggal
+  - Sortable by harga
 
-**Tabel Geografis:**
+**Tab Insight:**
 
-- Data dari `GetDetailGridData2` (selalu 5 hari terakhir, real-time dari BI)
-- Tree collapsible: Nasional → Provinsi → Kota → Pasar
-- 5 kolom tanggal
-- Sortable by harga
-
-**LLM Insight Panel:**
-
-- Generate on-demand ketika modal dibuka
-- Di-cache per komoditas per provinsi per hari
-- Bahasa Indonesia
+- **LLM Insight Panel:**
+  - Generate on-demand ketika **tab Insight dibuka** (bukan saat modal dibuka — TanStack Query `enabled` di-mount bersama tab)
+  - Di-cache per komoditas per provinsi per hari
+  - Bahasa Indonesia
+  - Output di-render sebagai **markdown** (komponen `InsightContent`)
+  - Timeout 35s → fallback UI "Insight tidak tersedia saat ini" + tombol "Coba lagi"
 
 **Konteks yang dikirim ke LLM:**
 
@@ -284,7 +320,7 @@ pantau-pangan/                ← root
 - **Framework:** Hono.js 4.x
 - **ORM:** Drizzle ORM (M2+)
 - **Database:** PostgreSQL 15+ (M2+)
-- **LLM:** OpenRouter API (V1) → Claude API (V2)
+- **LLM:** General Compute (primary) → OpenRouter fallback (M6b — lihat §11)
 - **Cron:** Bun native scheduler
 
 ### 7.3 Frontend — `apps/web`
@@ -296,6 +332,7 @@ pantau-pangan/                ← root
 - **Styling:** Tailwind CSS v4 (zero-config, customize via `app/globals.css` `@theme` block)
 - **Data Fetching:** TanStack Query (dipasang di M4)
 - **Theme:** Dark / Light mode (shadcn built-in, M4)
+- **Design system (M6b):** design token di `app/globals.css` (`@theme`) — brand accent padi-green + signal colors + typography Geist Sans/Mono. Source of truth visual: **`DESIGN.md`** di root. Signal colors hanya untuk data volatilitas (Signal Quarantine Rule).
 - **Config:** `next.config.ts` (TS native, Next 15+) dengan `transpilePackages: ['@pantau-pangan/shared']`
 
 ### 7.4 Scraper — `packages/scraper`
@@ -434,8 +471,11 @@ Cron harian (07.00 WIB) — dengan retry adaptif:
 
 ## 11. LLM Integration
 
-**Provider V1:** OpenRouter  
-**Provider V2:** Claude API (Haiku)
+**Provider chain (M6b):** **General Compute** (`minimax-m2.7`) sebagai primary → **OpenRouter** (`nvidia/nemotron-3-ultra-550b-a55b:free`) sebagai fallback. Jika primary error/timeout, otomatis fallback; jika keduanya gagal → 502.
+
+- Env: `GENERALCOMPUTE_API_KEY` + `GENERALCOMPUTE_MODEL` (default `minimax-m2.7`), `OPENROUTER_API_KEY` + `OPENROUTER_MODEL` (default `nvidia/nemotron-3-ultra-550b-a55b:free`)
+- Timeout per request: 30 detik (AbortController)
+- Parsing respons diperkuat: fallback `content` → `reasoning`, handle JSON invalid/kosong
 
 **Cache strategy:**
 
@@ -449,15 +489,16 @@ Cron harian (07.00 WIB) — dengan retry adaptif:
 
 ## 12. Milestones V1
 
-| Milestone             | Status  | Deliverable                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
-| --------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **M1 — Foundation**   | ✅ Done | Monorepo Bun + Turborepo 2, TypeScript 6 strict, ESLint 10 flat config (idiomatic typescript-eslint v8 dengan `tseslint.config()` helper), Prettier 3, Husky 9 + lint-staged + commitlint, 4 package skeleton (`apps/api` Hono, `apps/web` Next 16 + Tailwind 4 + React 19, `packages/shared`, `packages/scraper`), 4 hook gate verified                                                                                                                                                                                                                                                                   |
-| **M2 — Scraper**      | ✅ Done | Drizzle schema (6 tabel), migration, shared types/constants/utils, fetcher (retry + backoff), parser, orchestrator (upsert idempotent), 40 property tests                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
-| **M3 — API**          | ✅ Done | Hono routes + services: `/komoditas` (bubble data), `/komoditas/:id/historis`, `/komoditas/:id/detail` (proxy BI), `/komoditas/:id/insight` (LLM + cache), `/provinsi`. Thin route handler → service layer architecture, error handler, validators, 78 tests (property + integration)                                                                                                                                                                                                                                                                                                                      |
-| **M4 — Bubble Chart** | ✅ Done | D3.js force simulation, warna + ukuran bubble per timeframe, label 2-baris scaling, sparkline dalam bubble, filter timeframe (disable graceful), filter provinsi, search komoditas, tooltip hover, dark/light mode, refresh manual, loading skeleton, error state, DataFooter, 62 tests                                                                                                                                                                                                                                                                                                                    |
-| **M5 — Modal Detail** | ✅ Done | Modal detail per komoditas: Chart_Historis (D3.js line chart + HighLowMarker), Tabel_Geografis collapsible 4 level (sortable), Insight_Panel LLM (auto-fetch, cache-aware, timeout 35s), 107 tests (property + unit)                                                                                                                                                                                                                                                                                                                                                                                       |
-| **M6 — Polish**       | ✅ Done | Light mode theming (CSS variable tokens menggantikan hardcode zinc/dark), cron scheduler `node-cron` (07/11/15 WIB + midnight reset + retry adaptif `todayDone`), SEO/OG metadata (`metadataBase`, `openGraph`, `twitter`, `canonical`) + `og-image.png` 1200×630, React `ErrorBoundary` class component (fallback UI Bahasa Indonesia + reload button), aksesibilitas halaman (skip link, `<main id="main-content">`, `<nav aria-label>`), aksesibilitas modal (`aria-labelledby`), rate limiter LLM in-memory per IP (cache-aware, `finally` cleanup), 3 property tests + 22 unit/integration tests baru |
-| **M7 — Deploy**       | Pending | Railway (API + DB) + Vercel (Web), cron aktif, monitoring log                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| Milestone                  | Status  | Deliverable                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| -------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **M1 — Foundation**        | ✅ Done | Monorepo Bun + Turborepo 2, TypeScript 6 strict, ESLint 10 flat config (idiomatic typescript-eslint v8 dengan `tseslint.config()` helper), Prettier 3, Husky 9 + lint-staged + commitlint, 4 package skeleton (`apps/api` Hono, `apps/web` Next 16 + Tailwind 4 + React 19, `packages/shared`, `packages/scraper`), 4 hook gate verified                                                                                                                                                                                                                                                                                                             |
+| **M2 — Scraper**           | ✅ Done | Drizzle schema (6 tabel), migration, shared types/constants/utils, fetcher (retry + backoff), parser, orchestrator (upsert idempotent), 40 property tests                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| **M3 — API**               | ✅ Done | Hono routes + services: `/komoditas` (bubble data), `/komoditas/:id/historis`, `/komoditas/:id/detail` (proxy BI), `/komoditas/:id/insight` (LLM + cache), `/provinsi`. Thin route handler → service layer architecture, error handler, validators, 78 tests (property + integration)                                                                                                                                                                                                                                                                                                                                                                |
+| **M4 — Bubble Chart**      | ✅ Done | D3.js force simulation, warna + ukuran bubble per timeframe, label 2-baris scaling, sparkline dalam bubble, filter timeframe (disable graceful), filter provinsi, search komoditas, tooltip hover, dark/light mode, refresh manual, loading skeleton, error state, DataFooter, 62 tests                                                                                                                                                                                                                                                                                                                                                              |
+| **M5 — Modal Detail**      | ✅ Done | Modal detail per komoditas: Chart_Historis (D3.js line chart + HighLowMarker), Tabel_Geografis collapsible 4 level (sortable), Insight_Panel LLM (auto-fetch, cache-aware, timeout 35s), 107 tests (property + unit)                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| **M6 — Polish**            | ✅ Done | Light mode theming (CSS variable tokens menggantikan hardcode zinc/dark), cron scheduler `node-cron` (07/11/15 WIB + midnight reset + retry adaptif `todayDone`), SEO/OG metadata (`metadataBase`, `openGraph`, `twitter`, `canonical`) + `og-image.png` 1200×630, React `ErrorBoundary` class component (fallback UI Bahasa Indonesia + reload button), aksesibilitas halaman (skip link, `<main id="main-content">`, `<nav aria-label>`), aksesibilitas modal (`aria-labelledby`), rate limiter LLM in-memory per IP (cache-aware, `finally` cleanup), 3 property tests + 22 unit/integration tests baru                                           |
+| **M6b — Dashboard Layout** | ✅ Done | Refactor layout halaman utama ke grid dashboard: TopBar glass (logo + omnisearch + refresh + theme toggle), MarketBar (indikator Live + rentang tanggal + filter provinsi), LegendPanel (kiri), RingkasanSidebar (kanan — verdict + bar proporsi + Top Movers via `summarizeBubbles`), floating dock timeframe (mobile & desktop), modal detail diubah ke tabs Overview/Insight + render markdown insight, design token padi-green (Signal Quarantine Rule di `DESIGN.md`), logo baru, perbaikan tampilan mobile (bubble chart, market bar, modal), LLM provider chain General Compute → OpenRouter fallback, `DESIGN.md` + `PRODUCT.md` ditambahkan |
+| **M7 — Deploy**            | Pending | Railway (API + DB) + Vercel (Web), cron aktif, monitoring log                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 
 > Detail spec M1 ada di `.kiro/specs/m1-foundation/`. Untuk milestone berikutnya, asumsikan tooling M1 sudah stabil dan jangan setup ulang — lihat `CLAUDE.md` section "State M1 Foundation" untuk daftar versi tooling yang ter-resolve.
 

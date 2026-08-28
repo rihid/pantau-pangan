@@ -32,7 +32,7 @@ Visualisasi harga 21 komoditas pangan strategis berbasis bubble chart interaktif
 | Frontend      | Next.js (App Router) + React + Tailwind + D3.js + shadcn/ui + TanStack Query | next 16, react 19, tailwind 4 |
 | Scraper       | Bun fetch native (zero dependency)                                           | —                             |
 | LLM           | OpenRouter (V1) → Claude Haiku (V2)                                          | —                             |
-| Deploy        | Vercel (web) + Railway (api + db)                                            | —                             |
+| Deploy        | Docker Compose di VPS (nginx + web + api + postgres)                         | —                             |
 
 > Versi tooling di atas adalah yang ter-resolve saat M1 setup. Update via `bun add` akan mengikuti latest stable. Jangan downgrade tanpa alasan kuat.
 
@@ -162,31 +162,25 @@ Query params: `?provinsiId=0&timeframe=1D`
 
 ## Deploy
 
-### Railway (API + DB)
+### Docker Compose di VPS (AWS EC2) — direkomendasikan
+
+Seluruh stack (Postgres + API + web + nginx) berjalan di satu VPS via Docker
+Compose. Scraper harian otomatis (07/11/15 WIB) berjalan di dalam proses API,
+dan data history dari database lokal bisa dipindahkan ke produksi.
+
+**Runbook lengkap: [`deploy/README.md`](deploy/README.md)**
 
 ```bash
-# Install Railway CLI
-npm install -g @railway/cli
+# Di mesin lokal: backup DB dev (data history sejak Mei/Juni)
+bash deploy/scripts/backup-dev-db.sh pantau_pangan.dump
+scp -i ~/.ssh/key.pem pantau_pangan.dump ubuntu@VPS_IP:~/
 
-# Login dan deploy
-railway login
-railway up
+# Di VPS: bootstrap → build → restore data → up
+bash <(curl -sL .../deploy/scripts/setup-vps.sh)
+cd pantau-pangan/deploy && nano .env
+docker compose up -d --build
+bash scripts/restore-db.sh ~/pantau_pangan.dump
 ```
-
-Set environment variables di Railway dashboard.
-
-### Vercel (Web)
-
-```bash
-# Install Vercel CLI
-npm install -g vercel
-
-# Deploy
-cd apps/web
-vercel
-```
-
-Set `NEXT_PUBLIC_API_URL` ke URL Railway API kamu.
 
 ---
 

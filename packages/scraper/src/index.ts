@@ -303,7 +303,12 @@ async function main(): Promise<void> {
   }
 }
 
-// Guard: only auto-run when executed directly, not when imported from scheduler
-if (import.meta.main) {
+// Guard: hanya auto-run saat dijalankan langsung (bun run src/index.ts).
+// Tidak boleh trigger saat file ini di-bundle ke entry lain (mis. bundle
+// apps/api) — bun-build tidak menulis ulang `import.meta.main` untuk modul
+// yang di-inline, jadi tambahan cek `import.meta.path` membedakan dua kasus:
+//   langsung: path = .../packages/scraper/src/index.ts
+//   bundle:   path = .../apps/api/dist/index.js
+if (import.meta.main && import.meta.path.endsWith('scraper/src/index.ts')) {
   void main()
 }

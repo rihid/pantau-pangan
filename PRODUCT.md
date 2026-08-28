@@ -22,6 +22,8 @@ Masalah yang diselesaikan: data ini tersedia publik, tapi disajikan BI dalam for
 
 Sukses = user bisa membaca situasi harga pangan nasional dalam 5 detik pertama tanpa perlu membaca satu pun angka.
 
+Wujud konkretnya di dashboard: verdict otomatis ("Pasar didominasi kenaikan — 12/21 naik"), bar proporsi naik/turun/stabil, dan daftar Top Movers. Arah pasar terbaca sebelum mata menyentuh bubble chart — ini ekspresi langsung dari job-to-be-done "buka, lihat sekilas, langsung nangkap mana yang naik dan turun."
+
 ## Brand Personality
 
 **Segar · Awas · Informatif**
