@@ -39,8 +39,8 @@ describe('runScraper() export', () => {
     const src = readFileSync(srcPath, 'utf-8')
     expect(src).toContain('import.meta.main')
     // Should NOT have a bare `void main()` without the guard
-    // The guard pattern should be present
-    expect(src).toMatch(/if\s*\(\s*import\.meta\.main\s*\)/)
+    // The guard pattern should be present (compound guard dengan import.meta.path juga valid)
+    expect(src).toMatch(/if\s*\(\s*import\.meta\.main\b/)
   })
 
   test('mapLevelToFks is also exported (re-export from level-mapping)', () => {

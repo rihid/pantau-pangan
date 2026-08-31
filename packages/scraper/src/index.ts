@@ -254,13 +254,38 @@ export async function runScraper(): Promise<ScraperResult> {
         console.log(`[scraper]   Inserted/skipped ${rowsInserted} harga rows for ${item.nama}`)
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error)
-        errors.push({ komoditas: item.nama, message })
-        console.error(`[scraper]   Error processing ${item.nama}:`, message)
+        const cause = (error as { cause?: unknown }).cause
+        const detail =
+          cause instanceof Error
+            ? `${cause.message}${(cause as { code?: string }).code ? ` (code=${(cause as { code?: string }).code})` : ''}`
+            : cause
+              ? JSON.stringify(cause)
+              : ''
+        errors.push({
+          komoditas: item.nama,
+          message: detail ? `${message} | cause: ${detail}` : message,
+        })
+        console.error(
+          `[scraper]   Error processing ${item.nama}:`,
+          message,
+          detail ? `| cause: ${detail}` : '',
+        )
       }
     }
   } catch (error) {
     // Fatal error — close DB connection before throwing
-    console.error('[scraper] Fatal error:', error instanceof Error ? error.message : error)
+    const cause = (error as { cause?: unknown }).cause
+    const detail =
+      cause instanceof Error
+        ? `${cause.message}${(cause as { code?: string }).code ? ` (code=${(cause as { code?: string }).code})` : ''}`
+        : cause
+          ? JSON.stringify(cause)
+          : ''
+    console.error(
+      '[scraper] Fatal error:',
+      error instanceof Error ? error.message : error,
+      detail ? `| cause: ${detail}` : '',
+    )
     await closeConnection()
     throw error
   }
