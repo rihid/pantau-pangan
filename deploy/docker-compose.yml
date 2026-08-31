@@ -65,6 +65,11 @@ services:
       args:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
     image: pantau-pangan/web:latest
+    # Next.js standalone server bind ke process.env.HOSTNAME — Docker mengisi
+    # HOSTNAME dengan container ID, sehingga server tidak listen di 127.0.0.1
+    # dan healthcheck gagal. Paksa bind ke semua interface.
+    environment:
+      HOSTNAME: '0.0.0.0'
     restart: unless-stopped
     init: true
     depends_on:
