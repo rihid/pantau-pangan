@@ -1,7 +1,7 @@
 import { and, eq } from 'drizzle-orm'
 import { fetchCommoditiesTree, fetchDetailGrid } from './fetcher'
 import { parseCommoditiesTree, parseDetailGrid } from './parser'
-import { db, closeConnection, schema } from './db'
+import { db, schema } from './db'
 import { mapLevelToFks } from './level-mapping'
 
 export { mapLevelToFks } from './level-mapping'
@@ -273,7 +273,10 @@ export async function runScraper(): Promise<ScraperResult> {
       }
     }
   } catch (error) {
-    // Fatal error — close DB connection before throwing
+    // Fatal error — JANGAN tutup koneksi (client.end()). Pool db ini dipakai
+    // ulang oleh scheduler untuk run berikutnya (retry adaptif 07/11/15 WIB);
+    // menutupnya membuat semua run berikutnya gagal CONNECTION_ENDED.
+    // Untuk CLI, main() tetap process.exit() — socket ikut tertutup sendiri.
     const cause = (error as { cause?: unknown }).cause
     const detail =
       cause instanceof Error
@@ -286,7 +289,6 @@ export async function runScraper(): Promise<ScraperResult> {
       error instanceof Error ? error.message : error,
       detail ? `| cause: ${detail}` : '',
     )
-    await closeConnection()
     throw error
   }
 
@@ -299,8 +301,6 @@ export async function runScraper(): Promise<ScraperResult> {
   console.log(`[scraper]   Total harga rows: ${totalRows}`)
   console.log(`[scraper]   Latest date: ${latestDate ?? 'none'}`)
   console.log(`[scraper]   Duration: ${(durationMs / 1000).toFixed(1)}s`)
-
-  await closeConnection()
 
   return {
     rowsInserted: totalRows,
